@@ -24,6 +24,6 @@ TikiTorch works with `x86` & `x64` architectures and `staged` & `stageless` payl
 
 ## Credits
 
-Aaron for [Loader.cs](https://github.com/ambray/ProcessHollowing/blob/master/ShellLoader/Loader.cs)
-[James Foreshaw](https://twitter.com/tiraniddo) for [DotNetToJScript](https://github.com/tyranid/DotNetToJScript)
-[Vincent Yui](https://twitter.com/vysecurity) for inspiration
+- Aaron for [Loader.cs](https://github.com/ambray/ProcessHollowing/blob/master/ShellLoader/Loader.cs)
+- [James Foreshaw](https://twitter.com/tiraniddo) for [DotNetToJScript](https://github.com/tyranid/DotNetToJScript)
+- [Vincent Yui](https://twitter.com/vysecurity) for inspiration
