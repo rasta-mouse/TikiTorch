@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28010.2050
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TikiTorch", "TikiTorch\TikiTorch.csproj", "{2FFAFAA3-C2B6-431B-B7B4-0E864F62C7CB}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2FFAFAA3-C2B6-431B-B7B4-0E864F62C7CB}.Debug|x64.ActiveCfg = Debug|x64
+		{2FFAFAA3-C2B6-431B-B7B4-0E864F62C7CB}.Debug|x64.Build.0 = Debug|x64
+		{2FFAFAA3-C2B6-431B-B7B4-0E864F62C7CB}.Debug|x86.ActiveCfg = Debug|x86
+		{2FFAFAA3-C2B6-431B-B7B4-0E864F62C7CB}.Debug|x86.Build.0 = Debug|x86
+		{2FFAFAA3-C2B6-431B-B7B4-0E864F62C7CB}.Release|x64.ActiveCfg = Release|x64
+		{2FFAFAA3-C2B6-431B-B7B4-0E864F62C7CB}.Release|x64.Build.0 = Release|x64
+		{2FFAFAA3-C2B6-431B-B7B4-0E864F62C7CB}.Release|x86.ActiveCfg = Release|x86
+		{2FFAFAA3-C2B6-431B-B7B4-0E864F62C7CB}.Release|x86.Build.0 = Release|x86
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {B23C463A-471E-433A-853D-C4746BF1997D}
+	EndGlobalSection
+EndGlobal
