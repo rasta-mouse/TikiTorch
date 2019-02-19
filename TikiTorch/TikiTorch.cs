@@ -95,7 +95,10 @@ public sealed class Loader
 
     public const uint PageReadWriteExecute = 0x40;
     public const uint PageReadWrite = 0x04;
+
+    //someone please implement this for Dom
     public const uint PageExecuteRead = 0x20;
+
     public const uint MemCommit = 0x00001000;
     public const uint SecCommit = 0x08000000;
     public const uint GenericAll = 0x10000000;
