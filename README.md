@@ -10,7 +10,7 @@
 
 ## Intro
 
-TikiTorch was named in homage to [CACTUSTORCH](https://github.com/vysecurity/CACTUSTORCH) by [Vincent Yui](https://twitter.com/vysecurity).  The basic concept of CACTUSTORCH is that it spawns a new process, then uses `CreateRemoteThread` to run the desired shellcode within that target process.  Both the process and shellcode are specified by the user.
+TikiTorch was named in homage to [CACTUSTORCH](https://github.com/vysecurity/CACTUSTORCH) by [Vincent Yiu](https://twitter.com/vysecurity).  The basic concept of CACTUSTORCH is that it spawns a new process, then uses `CreateRemoteThread` to run the desired shellcode within that target process.  Both the process and shellcode are specified by the user.
 
 This is pretty flexible as it allows an operator to run an HTTP agent in a process such as `iexplore.exe`, rather than something more arbitrary like `rundll32.exe`.
 
@@ -24,6 +24,6 @@ TikiTorch works with `x86` & `x64` architectures and `staged` & `stageless` payl
 
 ## Credits
 
-- Aaron for [Loader.cs](https://github.com/ambray/ProcessHollowing/blob/master/ShellLoader/Loader.cs)
+- Aaron Bray for [Loader.cs](https://github.com/ambray/ProcessHollowing/blob/master/ShellLoader/Loader.cs)
 - [James Foreshaw](https://twitter.com/tiraniddo) for [DotNetToJScript](https://github.com/tyranid/DotNetToJScript)
-- [Vincent Yui](https://twitter.com/vysecurity) for inspiration
+- [Vincent Yiu](https://twitter.com/vysecurity) for inspiration
