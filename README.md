@@ -24,6 +24,8 @@ Otherwise, simply take the pre-made templates and replace `var tp` and `var sc` 
 
 TikiTorch works with `x86` & `x64` architectures and `staged` & `stageless` payloads.
 
+Most frameworks will provide C# byte array shellcode for staged payloads.  For stageless, you will generally need to output to raw and base64 encode the file, e.g. `[System.Convert]::ToBase64String([System.IO.File]::ReadAllBytes("stageless.bin"))`.
+
 ## Credits
 
 - Aaron Bray for [Loader.cs](https://github.com/ambray/ProcessHollowing/blob/master/ShellLoader/Loader.cs)
