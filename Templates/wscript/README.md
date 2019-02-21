@@ -1,0 +1,5 @@
+## wscript
+
+```
+wscript TikiTorch.vbs
+```
