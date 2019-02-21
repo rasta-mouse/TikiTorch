@@ -1,0 +1,5 @@
+## cscript
+
+```
+cscript TikiTorch.js
+```
