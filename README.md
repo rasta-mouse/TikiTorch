@@ -18,7 +18,7 @@ TikiTorch follows the same concept but uses `Process Hollowing` techniques inste
 
 ## Usage
 
-The C# is included here if you want to compile the DLL and run it through DotNetToJScript yourself.  I use custom Resource files for DotNetToJScript to generate the included templates, so your output will look different (though the base64 serialzed object should be the same).
+The C# is included here if you want to compile the DLL and run it through DotNetToJScript yourself.  I use custom Resource files for DotNetToJScript to generate the included templates, so your output will look different (though the base64 serialized object should be the same).
 
 Otherwise, simply take the pre-made templates and replace `var tp` and `var sc` with your desired values.  Where `tp` = target process to spawn and `sc` = base64 encoded shellcode.
 
