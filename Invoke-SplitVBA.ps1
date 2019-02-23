@@ -21,9 +21,8 @@
         default {throw "Aborting"; exit}
         }
 
+        Remove-Item $OutputFile
     }
-
-    Remove-Item $OutputFile
 
     $VBA = Get-Content -Path $InputFile
     $i = 0
