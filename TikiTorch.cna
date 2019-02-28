@@ -2,20 +2,42 @@ sub get_template {
 
 	$arch = $1;
 	$format = $2;
+        
+        # Get OS in use
+        $handle = exec("uname -s");
+        $os = readln($handle);
 
-	if ($format eq "xsl") {
-		if ($arch eq "x64") {
-			$template = getFileProper(script_resource("Templates\\wmic"), "TikiTorch_x64.xsl");
+        if (($os eq "Linux") || ($os eq "SunOS") || ($os eq "Darwin")) {
+            # Linux OS/Mac OS in use
+    	    if ($format eq "xsl") {
+    	    	if ($arch eq "x64") {
+	    		$template = getFileProper(script_resource("Templates/wmic"), "TikiTorch_x64.xsl");
 		} else {
-			$template = getFileProper(script_resource("Templates\\wmic"), "TikiTorch_x86.xsl");
+			$template = getFileProper(script_resource("Templates/wmic"), "TikiTorch_x86.xsl");
 		}
-	} else if ($format eq "sct") {
+    	    } else if ($format eq "sct") {
 		if ($arch eq "x64") {
-			$template = getFileProper(script_resource("Templates\\regsvr32"), "TikiTorch_x64.sct");
+			$template = getFileProper(script_resource("Templates/regsvr32"), "TikiTorch_x64.sct");
 		} else {
-			$template = getFileProper(script_resource("Templates\\regsvr32"), "TikiTorch_x86.sct");
+			$template = getFileProper(script_resource("Templates/regsvr32"), "TikiTorch_x86.sct");
 		}
-	}
+	    }
+        } else {
+            # Windows OS in use
+            if ($format eq "xsl") {
+                if ($arch eq "x64") {
+                        $template = getFileProper(script_resource("Templates\\wmic"), "TikiTorch_x64.xsl");
+                } else {
+                        $template = getFileProper(script_resource("Templates\\wmic"), "TikiTorch_x86.xsl");
+                }
+            } else if ($format eq "sct") {
+                if ($arch eq "x64") {
+                        $template = getFileProper(script_resource("Templates\\regsvr32"), "TikiTorch_x64.sct");
+                } else {
+                        $template = getFileProper(script_resource("Templates\\regsvr32"), "TikiTorch_x86.sct");
+                }
+            }
+        }
 
 	return $template;
 
