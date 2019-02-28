@@ -73,27 +73,6 @@ sub data_sub {
 
 }
 
-sub host_payload {
-	
-	$host = $1;
-	$port = $2;
-	$uri = $3;
-	$data = $4;
-
-	$url = site_host($host, $port, $uri, $data, "plain/text", "TikiTorch");
-	return $url;
-
-}
-
-sub remove_payload {
-	
-	$port = $1;
-	$uri = $2;
-
-	site_kill($port, $uri);
-
-}
-
 alias tikispawn {
 
 	$bid = $1;
@@ -182,7 +161,7 @@ alias tikispawn {
 		$uri = $uri . ".xsl"
 	}
 
-	$url = host_payload($host, $port, $uri, $final);
+	$url = site_host($host, $port, $uri, $final, "text/plain", "TikiTorch", false);
 
 	##################
 	### Execute It ###
@@ -312,7 +291,7 @@ alias tikispawnas {
 		$uri = $uri . ".xsl"
 	}
 
-	$url = host_payload($host, $port, $uri, $final);
+	$url = site_host($host, $port, $uri, $final, "text/plain", "TikiTorch", false);
 
 	##################
 	### Execute It ###
