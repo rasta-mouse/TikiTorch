@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("TikiTorch")]
+[assembly: AssemblyTitle("TikiLoader")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("TikiTorch")]
+[assembly: AssemblyProduct("TikiLoader")]
 [assembly: AssemblyCopyright("Copyright ©  2019")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -20,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("2ffafaa3-c2b6-431b-b7b4-0e864f62c7cb")]
+[assembly: Guid("806c6c72-4adc-43d9-b028-6872fa48d334")]
 
 // Version information for an assembly consists of the following four values:
 //

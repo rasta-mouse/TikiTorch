@@ -14,20 +14,48 @@ TikiTorch was named in homage to [CACTUSTORCH](https://github.com/vysecurity/CAC
 
 This is pretty flexible as it allows an operator to run an HTTP agent in a process such as `iexplore.exe`, rather than something more arbitrary like `rundll32.exe`.
 
-TikiTorch follows the same concept but uses `Process Hollowing` techniques instead of `CRT`.  I found an interesting implementation that seems to avoid calls to certain functions that are synonymous with hollowing, such as `VirtualAllocEx` and `SetThreadContext`.  I have no idea if this will help the longevity of the tool 🤷
+TikiTorch follows the same concept but uses `Process Hollowing` techniques instead of `CRT`.
 
 ## Usage
 
-The C# is included here if you want to compile the DLL and run it through DotNetToJScript yourself.  I use custom Resource files for DotNetToJScript to generate the included templates, so your output will look different (though the base64 serialized object should be the same).
+`TikiTorch` is a Visual Basic solution, split into 4 projects.
 
-Otherwise, simply take the pre-made templates and replace `var tp` and `var sc` with your desired values.  Where `tp` = target process to spawn and `sc` = base64 encoded shellcode.
+- TikiLoader
+- TikiSpawn
+- TikiSpawnAs
+- TikiSpawnAsAdmin
 
-TikiTorch works with `x86` & `x64` architectures and `staged` & `stageless` payloads.
+### TikiLoader
+A .NET Library that contains all the process hollowing code, used as a reference by `TikiSpawn`, `TikiSpawnAs` and `TikiSpawnAsAdmin`.
 
-Most frameworks will provide C# byte array shellcode for staged payloads.  For stageless, you will generally need to output to raw and base64 encode the file, e.g. `[System.Convert]::ToBase64String([System.IO.File]::ReadAllBytes("stageless.bin"))`.
+### TikiSpawn
+A .NET Library designed to bootstrap an agent via some initial delivery, can be used with [DotNetToJScript](https://github.com/tyranid/DotNetToJScript) in conjunction with lolbins.
+
+### TikiSpawnAs
+A .NET exe used to spawn agents under different creds.
+
+```
+> TikiSpawnAs.exe
+  -d, --domain=VALUE         Domain (defaults to local machine)
+  -u, --username=VALUE       Username
+  -p, --password=VALUE       Password
+  -b, --binary=VALUE         Binary to spawn & hollow
+  -h, -?, --help             Show this help
+```
+
+### TikiSpawnAsAdmin
+A .NET exe used to spawn a high integrity agent using the UAC Token Duplication bypass.
+
+```
+> TikiSpawnAsAdmin.exe
+  -b, --binary=VALUE         Binary to spawn & hollow
+  -p, --pid=VALUE            Elevated PID to impersonate (optional)
+  -h, -?, --help             Show this help
+```
 
 ## Credits
 
 - Aaron Bray for [Loader.cs](https://github.com/ambray/ProcessHollowing/blob/master/ShellLoader/Loader.cs)
-- [James Foreshaw](https://twitter.com/tiraniddo) for [DotNetToJScript](https://github.com/tyranid/DotNetToJScript)
+- [James Foreshaw](https://twitter.com/tiraniddo) for C# advice
 - [Vincent Yiu](https://twitter.com/vysecurity) for inspiration
+- [Kevin Mitnick](@kevinmitnick) for letting me test in his lab
