@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TikiSpawn", "TikiSpawn\Tiki
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TikiLoader", "TikiLoader\TikiLoader.csproj", "{806C6C72-4ADC-43D9-B028-6872FA48D334}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TikiCpl", "TikiCpl\TikiCpl.csproj", "{40C4388B-769D-4170-8DB1-C659AE8F45C9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -69,6 +71,18 @@ Global
 		{806C6C72-4ADC-43D9-B028-6872FA48D334}.Release|x64.Build.0 = Release|Any CPU
 		{806C6C72-4ADC-43D9-B028-6872FA48D334}.Release|x86.ActiveCfg = Release|Any CPU
 		{806C6C72-4ADC-43D9-B028-6872FA48D334}.Release|x86.Build.0 = Release|Any CPU
+		{40C4388B-769D-4170-8DB1-C659AE8F45C9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{40C4388B-769D-4170-8DB1-C659AE8F45C9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{40C4388B-769D-4170-8DB1-C659AE8F45C9}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{40C4388B-769D-4170-8DB1-C659AE8F45C9}.Debug|x64.Build.0 = Debug|Any CPU
+		{40C4388B-769D-4170-8DB1-C659AE8F45C9}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{40C4388B-769D-4170-8DB1-C659AE8F45C9}.Debug|x86.Build.0 = Debug|Any CPU
+		{40C4388B-769D-4170-8DB1-C659AE8F45C9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{40C4388B-769D-4170-8DB1-C659AE8F45C9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{40C4388B-769D-4170-8DB1-C659AE8F45C9}.Release|x64.ActiveCfg = Release|Any CPU
+		{40C4388B-769D-4170-8DB1-C659AE8F45C9}.Release|x64.Build.0 = Release|Any CPU
+		{40C4388B-769D-4170-8DB1-C659AE8F45C9}.Release|x86.ActiveCfg = Release|Any CPU
+		{40C4388B-769D-4170-8DB1-C659AE8F45C9}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
