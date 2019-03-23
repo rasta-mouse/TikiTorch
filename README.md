@@ -53,9 +53,14 @@ A .NET exe used to spawn a high integrity agent using the UAC Token Duplication 
   -h, -?, --help             Show this help
 ```
 
+### TikiCpl
+Generates a Control Panel (.cpl) formatted DLL that executes gzipped base64 encoded shellcode from a resource.  Following the instructions [here](https://github.com/rvrsh3ll/CPLResourceRunner) to generate shellcode in the correct format.
+
+
 ## Credits
 
 - Aaron Bray for [Loader.cs](https://github.com/ambray/ProcessHollowing/blob/master/ShellLoader/Loader.cs)
 - [James Foreshaw](https://twitter.com/tiraniddo) for C# advice
 - [Vincent Yiu](https://twitter.com/vysecurity) for inspiration
 - [Kevin Mitnick](@kevinmitnick) for letting me test in his lab
+- [Steve Borosh](https://twitter.com/424f424f) for TikiCpl
