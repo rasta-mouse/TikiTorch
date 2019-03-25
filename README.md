@@ -43,7 +43,7 @@ A .NET exe used to spawn agents under different creds.
   -h, -?, --help             Show this help
 ```
 
-### TikiSpawnAsAdmin
+### TikiSpawnElevated
 A .NET exe used to spawn a high integrity agent using the UAC Token Duplication bypass.
 
 ```
