@@ -24,9 +24,7 @@ public class TikiSpawn
     private static int FindProcessPid(string process)
     {
         int pid = 0;
-
         int session = Process.GetCurrentProcess().SessionId;
-
         Process[] processes = Process.GetProcessesByName(process);
 
         foreach (Process proc in processes)
