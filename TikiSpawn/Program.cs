@@ -58,7 +58,7 @@ public class TikiSpawn
         }
         catch (Exception e)
         {
-                Console.WriteLine("[x] Something went wrong! " + e.Message);
+            Console.WriteLine("[x] Something went wrong! " + e.Message);
         }
     }
 }
