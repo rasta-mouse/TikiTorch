@@ -18,15 +18,17 @@ TikiTorch follows the same concept but uses `Process Hollowing` techniques inste
 
 ## Usage
 
-`TikiTorch` is a Visual Basic solution, split into 4 projects.
+`TikiTorch` is a Visual Basic solution, split into 6 projects.
 
 - TikiLoader
 - TikiSpawn
 - TikiSpawnAs
-- TikiSpawnAsAdmin
+- TikiSpawnElevated
+- TikiCpl
+- TikiThings
 
 ### TikiLoader
-A .NET Library that contains all the process hollowing code, used as a reference by `TikiSpawn`, `TikiSpawnAs` and `TikiSpawnAsAdmin`.
+A .NET Library that contains all the process hollowing code, used as a reference by the other Tiki projects.
 
 ### TikiSpawn
 A .NET Library designed to bootstrap an agent via some initial delivery, can be used with [DotNetToJScript](https://github.com/tyranid/DotNetToJScript) in conjunction with lolbins.
@@ -47,7 +49,7 @@ A .NET exe used to spawn agents under different creds.
 A .NET exe used to spawn a high integrity agent using the UAC Token Duplication bypass.
 
 ```
-> TikiSpawnAsAdmin.exe
+> TikiSpawnElevated.exe
   -b, --binary=VALUE         Binary to spawn & hollow
   -p, --pid=VALUE            Elevated PID to impersonate (optional)
   -h, -?, --help             Show this help
@@ -68,7 +70,6 @@ rundll32 TikiThings.dll,EntryPoint
 odbcconf /s /a { REGSVR TikiThings.dll }
 regsvr32 /s /n /i:"blah" TikiThings.dll
 ```
-
 
 ## Credits
 

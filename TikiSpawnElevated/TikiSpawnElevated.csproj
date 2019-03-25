@@ -7,8 +7,8 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{1F707405-9708-4A34-A809-2C62B84D4F0A}</ProjectGuid>
     <OutputType>Exe</OutputType>
-    <RootNamespace>TikiSpawnAsAdmin</RootNamespace>
-    <AssemblyName>TikiSpawnAsAdmin</AssemblyName>
+    <RootNamespace>TikiSpawnElevated</RootNamespace>
+    <AssemblyName>TikiSpawnElevated</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
