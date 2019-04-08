@@ -83,4 +83,5 @@ regsvr32 /s /n /i:"blah" TikiThings.dll
 
 ## Further Reading
 
-https://rastamouse.me/tags/tikitorch/
+- https://rastamouse.me/tags/tikitorch/
+- https://www.rythmstick.net/posts/tikitorch/
