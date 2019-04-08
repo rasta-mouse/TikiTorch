@@ -80,3 +80,7 @@ regsvr32 /s /n /i:"blah" TikiThings.dll
 - [Steve Borosh](https://twitter.com/424f424f) for TikiCpl
 - [Casey Smith](https://twitter.com/subTee) for [AllTheThings](https://github.com/redcanaryco/atomic-red-team/blob/master/atomics/T1117/src/AllTheThings.cs)
 - [Marcus Gelderman](https://gist.github.com/marcgeld) for [psCompress.ps1](https://gist.github.com/marcgeld/bfacfd8d70b34fdf1db0022508b02aca)
+
+## Further Reading
+
+https://rastamouse.me/tags/tikitorch/
