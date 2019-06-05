@@ -136,6 +136,7 @@ namespace TikiLoader
             STARTUPINFOEX sInfoEx = new STARTUPINFOEX();
             PROCESS_INFORMATION pInfo = new PROCESS_INFORMATION();
 
+            sInfoEx.StartupInfo.cb = (uint)Marshal.SizeOf(sInfoEx);
             IntPtr lpValue = IntPtr.Zero;
 
             try
@@ -143,6 +144,8 @@ namespace TikiLoader
 
                 SECURITY_ATTRIBUTES pSec = new SECURITY_ATTRIBUTES();
                 SECURITY_ATTRIBUTES tSec = new SECURITY_ATTRIBUTES();
+                pSec.nLength = Marshal.SizeOf(pSec);
+                tSec.nLength = Marshal.SizeOf(tSec);
 
                 uint flags = CreateSuspended | DetachedProcess | CreateNoWindow | EXTENDED_STARTUPINFO_PRESENT;
 
