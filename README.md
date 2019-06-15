@@ -71,6 +71,9 @@ odbcconf /s /a { REGSVR TikiThings.dll }
 regsvr32 /s /n /i:"blah" TikiThings.dll
 ```
 
+### TikiVader
+Like TikiLoader, a .NET Library that can be used as a reference by the other Tiki projects.  It contains pre-canned functions for enumerating environmental variables such as current domain name and computer hostname, as a means of ensuring the TikiLoader only executes in your desired target environment.  It's not an evasion tactic, but a safety one.
+
 ## Credits
 
 - Aaron Bray for [Loader.cs](https://github.com/ambray/ProcessHollowing/blob/master/ShellLoader/Loader.cs)
@@ -80,6 +83,7 @@ regsvr32 /s /n /i:"blah" TikiThings.dll
 - [Steve Borosh](https://twitter.com/424f424f) for TikiCpl
 - [Casey Smith](https://twitter.com/subTee) for [AllTheThings](https://github.com/redcanaryco/atomic-red-team/blob/master/atomics/T1117/src/AllTheThings.cs)
 - [Marcus Gelderman](https://gist.github.com/marcgeld) for [psCompress.ps1](https://gist.github.com/marcgeld/bfacfd8d70b34fdf1db0022508b02aca)
+- [Will Schroeder](https://twitter.com/harmj0y) for [Seatbelt](https://github.com/GhostPack/Seatbelt)
 
 ## Further Reading
 
