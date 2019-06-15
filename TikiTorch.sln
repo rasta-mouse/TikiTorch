@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28010.2050
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29001.49
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TikiSpawnAs", "TikiSpawnAs\TikiSpawnAs.csproj", "{97421325-B6D8-49E5-ADF0-E2126ABC17EE}"
 EndProject
@@ -14,6 +14,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TikiCpl", "TikiCpl\TikiCpl.csproj", "{40C4388B-769D-4170-8DB1-C659AE8F45C9}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TikiThings", "TikiThings\TikiThings.csproj", "{06C247DA-E2E1-47F3-BC3C-DA0838A6DF1F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TikiVader", "TikiVader\TikiVader.csproj", "{8F5F3A95-F05C-4DCE-8BC3-D0A0D4153DB6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -97,6 +99,18 @@ Global
 		{06C247DA-E2E1-47F3-BC3C-DA0838A6DF1F}.Release|x64.Build.0 = Release|Any CPU
 		{06C247DA-E2E1-47F3-BC3C-DA0838A6DF1F}.Release|x86.ActiveCfg = Release|Any CPU
 		{06C247DA-E2E1-47F3-BC3C-DA0838A6DF1F}.Release|x86.Build.0 = Release|Any CPU
+		{8F5F3A95-F05C-4DCE-8BC3-D0A0D4153DB6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8F5F3A95-F05C-4DCE-8BC3-D0A0D4153DB6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8F5F3A95-F05C-4DCE-8BC3-D0A0D4153DB6}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{8F5F3A95-F05C-4DCE-8BC3-D0A0D4153DB6}.Debug|x64.Build.0 = Debug|Any CPU
+		{8F5F3A95-F05C-4DCE-8BC3-D0A0D4153DB6}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{8F5F3A95-F05C-4DCE-8BC3-D0A0D4153DB6}.Debug|x86.Build.0 = Debug|Any CPU
+		{8F5F3A95-F05C-4DCE-8BC3-D0A0D4153DB6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8F5F3A95-F05C-4DCE-8BC3-D0A0D4153DB6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8F5F3A95-F05C-4DCE-8BC3-D0A0D4153DB6}.Release|x64.ActiveCfg = Release|Any CPU
+		{8F5F3A95-F05C-4DCE-8BC3-D0A0D4153DB6}.Release|x64.Build.0 = Release|Any CPU
+		{8F5F3A95-F05C-4DCE-8BC3-D0A0D4153DB6}.Release|x86.ActiveCfg = Release|Any CPU
+		{8F5F3A95-F05C-4DCE-8BC3-D0A0D4153DB6}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
