@@ -22,7 +22,7 @@ namespace TikiSpawnAs
                 { "d|domain=", "Domain (defaults to local machine)", v => domain = v },
                 { "u|username=", "Username", v => username = v },
                 { "p|password=", "Password", v => password = v },
-                { "b|binary=", "Binary to spawn & hollow", v => binary = v },
+                { "b|binary=", "Binary to spawn & inject", v => binary = v },
                 { "h|?|help", "Show this help", v => help = true }
             };
 
