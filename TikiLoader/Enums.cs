@@ -40,14 +40,10 @@ namespace TikiLoader
         [Flags]
         public enum CreationFlags
         {
-            CREATE_SUSPENDED = 0x00000004,
-            DETACHED_PROCESS = 0x00000008,
-            CREATE_NEW_CONSOLE = 0x00000010,
-            CREATE_NEW_PROCESS_GROUP = 0x00000200,
-            CREATE_UNICODE_ENVIRONMENT = 0x00000400,
-            CREATE_SEPARATE_WOW_VDM = 0x00000800,
-            CREATE_DEFAULT_ERROR_MODE = 0x04000000,
-            CREATE_NO_WINDOW = 0x08000000
+            CreateSuspended = 0x00000004,
+            DetachedProcesds = 0x00000008,
+            CreateNoWindow = 0x08000000,
+            ExtendedStartupInfoPresent = 0x00080000
         }
 
         [Flags]
@@ -55,7 +51,37 @@ namespace TikiLoader
         {
             LOGON_WITH_PROFILE = 0x00000001,
             LOGON_NETCREDENTIALS_ONLY = 0x00000002
+        }
 
+        [Flags]
+        public enum AllocationType
+        {
+            Commit = 0x1000,
+            Reserve = 0x2000,
+            Decommit = 0x4000,
+            Release = 0x8000,
+            Reset = 0x80000,
+            Physical = 0x400000,
+            TopDown = 0x100000,
+            WriteWatch = 0x200000,
+            LargePages = 0x20000000,
+            SecCommit = 0x08000000
+    }
+
+        [Flags]
+        public enum MemoryProtection
+        {
+            Execute = 0x10,
+            ExecuteRead = 0x20,
+            ExecuteReadWrite = 0x40,
+            ExecuteWriteCopy = 0x80,
+            NoAccess = 0x01,
+            ReadOnly = 0x02,
+            ReadWrite = 0x04,
+            WriteCopy = 0x08,
+            GuardModifierflag = 0x100,
+            NoCacheModifierflag = 0x200,
+            WriteCombineModifierflag = 0x400
         }
     }
 }

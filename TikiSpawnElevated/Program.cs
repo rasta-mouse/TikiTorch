@@ -13,7 +13,7 @@ namespace TikiSpawnAsAdmin
             int elevatedPid = 0;
             bool help = false;
 
-            byte[] shellcode = Convert.FromBase64String(@"");
+            byte[] shellcode = Convert.FromBase64String("");
 
             var options = new OptionSet()
             {
@@ -33,8 +33,8 @@ namespace TikiSpawnAsAdmin
                 }
                 else
                 {
-                    var ldr = new Loader();
-                    ldr.LoadElevated(binary, shellcode, elevatedPid);
+                    var hollower = new Hollower();
+                    hollower.HollowElevated(binary, shellcode, elevatedPid);
                     //while (true)
                     //{
                     //    Thread.Sleep(1000);
@@ -44,7 +44,7 @@ namespace TikiSpawnAsAdmin
             }
             catch (Exception e)
             {
-                Console.WriteLine("[x] Something went wrong!!" + e.Message);
+                Console.WriteLine(" [x] {0}", e.Message);
             }
         }
     }

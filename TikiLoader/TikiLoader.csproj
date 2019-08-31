@@ -44,8 +44,10 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Enums.cs" />
+    <Compile Include="Generic.cs" />
     <Compile Include="Imports.cs" />
-    <Compile Include="Loader.cs" />
+    <Compile Include="Hollower.cs" />
+    <Compile Include="Injector.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Structs.cs" />
   </ItemGroup>

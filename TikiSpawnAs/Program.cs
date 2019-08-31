@@ -1,5 +1,6 @@
 ﻿using System;
 using NDesk.Options;
+
 using TikiLoader;
 
 namespace TikiSpawnAs
@@ -14,7 +15,7 @@ namespace TikiSpawnAs
             string password = null;
             bool help = false;
 
-            byte[] shellcode = Convert.FromBase64String(@"");
+            byte[] shellcode = Convert.FromBase64String("");
 
             var options = new OptionSet()
             {
@@ -27,7 +28,6 @@ namespace TikiSpawnAs
 
             try
             {
-
                 options.Parse(args);
 
                 if (help || username == null || password == null || binary == null)
@@ -40,13 +40,13 @@ namespace TikiSpawnAs
                     if (domain == null)
                         domain = ".";
 
-                    var ldr = new Loader();
-                    ldr.LoadAs(binary, shellcode, domain, username, password);
+                    var hollower = new Hollower();
+                    hollower.HollowAs(binary, shellcode, domain, username, password);
                 }
             }
             catch (Exception e)
             {
-                Console.WriteLine("[x] Something went wrong!!" + e.Message);
+                Console.WriteLine(" [x] {0}", e.Message);
             }
         }
     }
