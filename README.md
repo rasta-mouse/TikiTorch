@@ -14,7 +14,7 @@ TikiTorch was named in homage to [CACTUSTORCH](https://github.com/vysecurity/CAC
 
 This is pretty flexible as it allows an operator to run an HTTP agent in a process such as `iexplore.exe`, rather than something more arbitrary like `rundll32.exe`.
 
-TikiTorch follows the same concept but uses `Process Hollowing` techniques instead of `CRT`.
+TikiTorch follows the same concept but has multiple types of process injection available, which can be specified by the user at compile time.
 
 ## Usage
 
@@ -30,7 +30,7 @@ TikiTorch follows the same concept but uses `Process Hollowing` techniques inste
 - TikiVader
 
 ### TikiLoader
-A .NET Library that contains all the process hollowing code, used as a reference by the other Tiki projects.
+A .NET Library that contains all the process injection code, used as a reference by the other Tiki projects.
 
 ### TikiSpawn
 A .NET Library designed to bootstrap an agent via some initial delivery, can be used with [DotNetToJScript](https://github.com/tyranid/DotNetToJScript) in conjunction with lolbins.
