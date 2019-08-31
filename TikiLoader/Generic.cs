@@ -146,7 +146,7 @@ namespace TikiLoader
             STARTUPINFO sInfo = new STARTUPINFO();
             PROCESS_INFORMATION pInfo = new PROCESS_INFORMATION();
 
-            CreateProcessWithLogonW("xxx", "xxx", "xxx", LogonFlags.LOGON_NETCREDENTIALS_ONLY, binary, "", CreationFlags.CreateSuspended, 0, @"C:\Windows\System32", ref sInfo, out pInfo);
+            CreateProcessWithLogonW("xxx", "xxx", "xxx", LogonFlags.LogonNetCredentialsOnly, binary, "", CreationFlags.CreateSuspended, 0, @"C:\Windows\System32", ref sInfo, out pInfo);
 
             if (elevatedPID == 0)
                 TerminateProcess(hProcess, 1);
