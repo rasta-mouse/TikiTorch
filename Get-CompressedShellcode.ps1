@@ -14,5 +14,5 @@ function Get-CompressedShellcode {
     $tmp = $output.ToArray()
     
     $b64 = [System.Convert]::ToBase64String($tmp)
-    Write-Host $b64
+    Write-Output $b64
 }
