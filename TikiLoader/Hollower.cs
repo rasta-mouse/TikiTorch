@@ -65,8 +65,6 @@ namespace TikiLoader
         private void SetLocalSection(uint size)
         {
             var vals = MapSection(GetCurrent(), MemoryProtection.ReadWrite, IntPtr.Zero);
-            if (vals.Key == (IntPtr)0)
-                throw new SystemException("[x] Failed to map view of section!");
 
             localmap_ = vals.Key;
             localsize_ = vals.Value;
