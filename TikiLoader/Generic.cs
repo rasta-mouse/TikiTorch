@@ -83,7 +83,7 @@ namespace TikiLoader
             PROCESS_INFORMATION procInfo = new PROCESS_INFORMATION();
 
             CreationFlags flags = CreationFlags.CreateSuspended | CreationFlags.CreateNoWindow;
-            CreateProcessWithLogonW(username, domain, password, 0x00000001, path, "", flags, (uint)0, @"C:\Windows\System32", ref startInfo, out procInfo);
+            CreateProcessWithLogonW(username, domain, password, LogonFlags.LogonWithProfile, path, "", flags, (uint)0, @"C:\Windows\System32", ref startInfo, out procInfo);
 
             return procInfo;
         }

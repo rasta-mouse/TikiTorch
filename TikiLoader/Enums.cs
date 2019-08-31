@@ -49,8 +49,8 @@ namespace TikiLoader
         [Flags]
         public enum LogonFlags
         {
-            LOGON_WITH_PROFILE = 0x00000001,
-            LOGON_NETCREDENTIALS_ONLY = 0x00000002
+            LogonWithProfile = 0x00000001,
+            LogonNetCredentialsOnly = 0x00000002
         }
 
         [Flags]

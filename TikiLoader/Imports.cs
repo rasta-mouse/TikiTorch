@@ -30,9 +30,6 @@ namespace TikiLoader
         public static extern bool CreateProcess(string lpApplicationName, string lpCommandLine, ref SECURITY_ATTRIBUTES lpProcessAttributes, ref SECURITY_ATTRIBUTES lpThreadAttributes, bool bInheritHandles, CreationFlags dwCreationFlags, IntPtr lpEnvironment, string lpCurrentDirectory, [In] ref STARTUPINFOEX lpStartupInfo, out PROCESS_INFORMATION lpProcessInformation);
 
         [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-        public static extern bool CreateProcessWithLogonW(string username, string domain, string password, uint logonFlags, string applicationName, string commandLine, CreationFlags creationFlags, uint environment, string currentDirectory, ref STARTUPINFO startupInfo, out PROCESS_INFORMATION processInformation);
-
-        [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
         public static extern bool CreateProcessWithLogonW(string username, string domain, string password, LogonFlags logonFlags, string applicationName, string commandLine, CreationFlags creationFlags, uint environment, string currentDirectory, ref STARTUPINFO startupInfo, out PROCESS_INFORMATION processInformation);
 
         [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Auto)]
