@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading;
+
 using NDesk.Options;
 using TikiLoader;
 
@@ -13,11 +14,11 @@ namespace TikiSpawnAsAdmin
             int elevatedPid = 0;
             bool help = false;
 
-            byte[] shellcode = Convert.FromBase64String("");
+            byte[] shellcode = Generic.DecompressShellcode(Convert.FromBase64String(""));
 
             var options = new OptionSet()
             {
-                { "b|binary=", "Binary to spawn & hollow", v => binary = v },
+                { "b|binary=", "Binary to spawn & inject", v => binary = v },
                 { "p|pid=", "Elevated PID to impersonate (optional)", v => elevatedPid = int.Parse(v) },
                 { "h|?|help", "Show this help", v => help = true }
             };
