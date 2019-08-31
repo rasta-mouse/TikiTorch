@@ -15,7 +15,7 @@ namespace TikiSpawnAs
             string password = null;
             bool help = false;
 
-            byte[] shellcode = Convert.FromBase64String("");
+            byte[] shellcode = Generic.DecompressShellcode(Convert.FromBase64String(""));
 
             var options = new OptionSet()
             {
