@@ -74,6 +74,9 @@ namespace TikiLoader
         [DllImport("kernel32.dll")]
         public static extern IntPtr OpenProcess(UInt32 processAccess, bool bInheritHandle, int processId);
 
+        [DllImport("kernel32.dll")]
+        public static extern IntPtr QueueUserAPC(IntPtr pfnAPC, IntPtr hThread, IntPtr dwData);
+
         [DllImport("shell32.dll", CharSet = CharSet.Auto)]
         public static extern bool ShellExecuteEx(ref SHELLEXECUTEINFO lpExecInfo);
 
