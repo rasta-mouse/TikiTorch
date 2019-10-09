@@ -43,6 +43,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AOEer.cs" />
     <Compile Include="Enums.cs" />
     <Compile Include="Generic.cs" />
     <Compile Include="Imports.cs" />
