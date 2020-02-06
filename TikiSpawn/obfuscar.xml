@@ -1,0 +1,9 @@
+﻿<?xml version='1.0'?>
+<Obfuscator>
+  <var name="InPath" value="." />
+  <var name="OutPath" value=".\obfuscated" />
+  <var name="KeepPublicApi" value="false" />
+  <var name="HidePrivateApi" value="true" />
+
+  <module file="$(InPath)\TikiSpawn.dll" />
+</Obfuscator>
