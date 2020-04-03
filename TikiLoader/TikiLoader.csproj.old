@@ -43,8 +43,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="DinvokeGenerics.cs" />
-    <Compile Include="DynamicInjector.cs" />
     <Compile Include="Enums.cs" />
     <Compile Include="Generic.cs" />
     <Compile Include="Imports.cs" />
