@@ -13,7 +13,49 @@ namespace TikiLoader
     public class Generic
     {
         private const int ProcThreadAttributeParentProcess = 0x00020000;
+        
+        public static PROCESS_INFORMATION StartProcessFake(string targetProcess, int parentProcessId, string fakeCmdLine)
+        {
+            STARTUPINFOEX sInfoEx = new STARTUPINFOEX();
+            PROCESS_INFORMATION pInfo = new PROCESS_INFORMATION();
 
+            sInfoEx.StartupInfo.cb = (uint)Marshal.SizeOf(sInfoEx);
+            IntPtr lpValue = IntPtr.Zero;
+
+            try
+            {
+                SECURITY_ATTRIBUTES pSec = new SECURITY_ATTRIBUTES();
+                SECURITY_ATTRIBUTES tSec = new SECURITY_ATTRIBUTES();
+                pSec.nLength = Marshal.SizeOf(pSec);
+                tSec.nLength = Marshal.SizeOf(tSec);
+
+                CreationFlags flags = CreationFlags.CreateSuspended | CreationFlags.DetachedProcesds | CreationFlags.CreateNoWindow | CreationFlags.ExtendedStartupInfoPresent;
+
+                IntPtr lpSize = IntPtr.Zero;
+
+                InitializeProcThreadAttributeList(IntPtr.Zero, 1, 0, ref lpSize);
+                sInfoEx.lpAttributeList = Marshal.AllocHGlobal(lpSize);
+                InitializeProcThreadAttributeList(sInfoEx.lpAttributeList, 1, 0, ref lpSize);
+
+                IntPtr parentHandle = Process.GetProcessById(parentProcessId).Handle;
+                lpValue = Marshal.AllocHGlobal(IntPtr.Size);
+                Marshal.WriteIntPtr(lpValue, parentHandle);
+
+                UpdateProcThreadAttribute(sInfoEx.lpAttributeList, 0, (IntPtr)ProcThreadAttributeParentProcess, lpValue, (IntPtr)IntPtr.Size, IntPtr.Zero, IntPtr.Zero);
+
+                CreateProcess(targetProcess, fakeCmdLine, ref pSec, ref tSec, false, flags, IntPtr.Zero, null, ref sInfoEx, out pInfo);
+
+                return pInfo;
+
+            }
+            finally
+            {
+                DeleteProcThreadAttributeList(sInfoEx.lpAttributeList);
+                Marshal.FreeHGlobal(sInfoEx.lpAttributeList);
+                Marshal.FreeHGlobal(lpValue);
+            }
+        }
+        
         public static PROCESS_INFORMATION StartProcess(string targetProcess, int parentProcessId)
         {
             STARTUPINFOEX sInfoEx = new STARTUPINFOEX();
