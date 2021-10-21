@@ -8,39 +8,42 @@
   |_|     |_| |_\_\   |_|   |_|    \___/ |_|   \__|  |_||_| 
 ```
 
-TikiTorch was named in homage to [CACTUSTORCH](https://github.com/vysecurity/CACTUSTORCH) by [Vincent Yiu](https://twitter.com/vysecurity).  The basic concept of CACTUSTORCH is that it spawns a new process, allocates a region of memory, then uses `CreateRemoteThread` to run the desired shellcode within that target process.  Both the process and shellcode are specified by the user.
+TikiTorch was named in homage to [CACTUSTORCH](https://github.com/vysecurity/CACTUSTORCH) by [Vincent Yiu](https://twitter.com/vysecurity).  The basic concept of CACTUSTORCH is that it spawns a new process, allocates a region of memory, writes shellcode into that region, and then uses `CreateRemoteThread` to execute said shellcode.  Both the process and shellcode are specified by the user.  The primary use case is as a JavaScript/VBScript loader via [DotNetToJScript](https://github.com/tyranid/DotNetToJScript), which can be utilised in a variety of payload types such as HTA and VBA.
 
-This is pretty flexible as it allows an operator to run an HTTP agent in a process such as `iexplore.exe`, rather than something more arbitrary like `rundll32` or `powershell`.
+TikiTorch takes this a step further by offering a more advanced style of process spawning and injection:
 
-TikiTorch follows the same concept but has multiple types of process injection available, which can be specified by the user at compile time.
+- Spawn x86 or x64 processes.
+- Supports PPID Spoofing and BlockDLLs.
+- Uses [Module Stomping](https://offensivedefence.co.uk/posts/module-stomping/) for injection.
+- Utilises [DInvoke](https://github.com/TheWover/DInvoke) to call lower-level Nt* APIs.
 
-## Projects
+The TikiTorch solution has 2 projects:
+1. TikiLoader
+2. TikiSpawn
 
-`TikiTorch` is a Visual Basic solution, split into 8 projects.
+The TikiLoader is the core DLL that handles all of the actual spawning and injection logic.  TikiSpawn is a demo console app showing how to consume the TikiLoader.
 
-- TikiLoader
-- TikiSpawn
-- TikiSpawnAs
-- TikiSpawnElevated
-- TikiCpl
-- TikiService
-- TikiThings
-- TikiVader
+## Basic Usage
 
-In the first instance, please see the [Wiki](https://github.com/rasta-mouse/TikiTorch/wiki) for usage instructions.
+```c#
+using System.Diagnostics;
+using TikiLoader;
 
-## Credits
+var shellcode = new byte[] { /* whatever */ };
 
-- Aaron Bray for [Loader.cs](https://github.com/ambray/ProcessHollowing/blob/master/ShellLoader/Loader.cs)
-- [James Foreshaw](https://twitter.com/tiraniddo) for C# advice
-- [Vincent Yiu](https://twitter.com/vysecurity) for inspiration
-- [Kevin Mitnick](@kevinmitnick) for letting me test in his lab
-- [Steve Borosh](https://twitter.com/424f424f) for TikiCpl
-- [Casey Smith](https://twitter.com/subTee) for [AllTheThings](https://github.com/redcanaryco/atomic-red-team/blob/master/atomics/T1117/src/AllTheThings.cs)
-- [Marcus Gelderman](https://gist.github.com/marcgeld) for [psCompress.ps1](https://gist.github.com/marcgeld/bfacfd8d70b34fdf1db0022508b02aca)
-- [Will Schroeder](https://twitter.com/harmj0y) for [Seatbelt](https://github.com/GhostPack/Seatbelt)
+var stomper = new Stomper
+{
+    BinaryPath = @"C:\Windows\System32\notepad.exe",
+    WorkingDirectory = @"C:\Windows\System32",
+    ModuleName = "xpsservices.dll",
+    ExportName = "DllCanUnloadNow",
+    ParentId = Process.GetProcessesByName("explorer")[0].Id,
+    BlockDlls = true
+};
+            
+stomper.Stomp(_shellcode);
+```
 
-## Further Reading
-
-- https://rastamouse.me/tags/tikitorch/
-- https://www.rythmstick.net/posts/tikitorch/
+![](notepad.png)
+![](modules.png)
+![](thread.png)

