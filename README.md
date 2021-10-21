@@ -41,7 +41,7 @@ var stomper = new Stomper
     BlockDlls = true
 };
             
-stomper.Stomp(_shellcode);
+stomper.Stomp(shellcode);
 ```
 
 ![](notepad.png)
