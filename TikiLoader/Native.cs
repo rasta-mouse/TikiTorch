@@ -104,5 +104,52 @@ namespace TikiLoader
             oldProtect = (uint)parameters[4];
             return oldProtect;
         }
+        
+        public static uint NtReadVirtualMemory(IntPtr processHandle, IntPtr baseAddress, IntPtr buffer, ref uint numberOfBytesToRead)
+        {
+            uint numberOfBytesRead = 0;
+            object[] parameters = { processHandle, baseAddress, buffer, numberOfBytesToRead, numberOfBytesRead };
+
+            var retValue = (uint)Generic.DynamicApiInvoke("ntdll.dll", "NtReadVirtualMemory", typeof(Delegates.NtReadVirtualMemory), ref parameters);
+
+            numberOfBytesRead = (uint)parameters[4];
+            return numberOfBytesRead;
+        }
+        
+        public static uint NtCreateSection(ref IntPtr sectionHandle, uint desiredAccess, IntPtr objectAttributes, ref ulong maximumSize, uint sectionPageProtection, uint allocationAttributes, IntPtr fileHandle)
+        {
+            object[] parameters = { sectionHandle, desiredAccess, objectAttributes, maximumSize, sectionPageProtection, allocationAttributes, fileHandle };
+            var retValue = (uint)Generic.DynamicApiInvoke(@"ntdll.dll", @"NtCreateSection", typeof(Delegates.NtCreateSection), ref parameters);
+
+            sectionHandle = (IntPtr)parameters[0];
+            maximumSize = (ulong)parameters[3];
+
+            return retValue;
+        }
+        
+        public static uint NtMapViewOfSection(IntPtr sectionHandle, IntPtr processHandle, ref IntPtr baseAddress, IntPtr zeroBits, IntPtr commitSize, IntPtr sectionOffset, ref ulong viewSize, uint inheritDisposition, uint allocationType, uint win32Protect)
+        {
+            object[] parameters = { sectionHandle, processHandle, baseAddress, zeroBits, commitSize, sectionOffset, viewSize, inheritDisposition, allocationType, win32Protect };
+            var retValue = (uint)Generic.DynamicApiInvoke("ntdll.dll", "NtMapViewOfSection", typeof(Delegates.NtMapViewOfSection), ref parameters);
+
+            baseAddress = (IntPtr) parameters[2];
+            viewSize = (ulong) parameters[6];
+
+            return retValue;
+        }
+        
+        public static uint NtUnmapViewOfSection(IntPtr hProc, IntPtr baseAddress)
+        {
+            object[] parameters = { hProc, baseAddress };
+            var result = (uint)Generic.DynamicApiInvoke("ntdll.dll", "NtUnmapViewOfSection", typeof(Delegates.NtUnmapViewOfSection), ref parameters);
+            return result;
+        }
+        
+        public static uint NtResumeThread(IntPtr hThread, IntPtr suspendCount)
+        {
+            object[] parameters = { hThread, suspendCount };
+            var result = (uint)Generic.DynamicApiInvoke("ntdll.dll", "NtResumeThread", typeof(Delegates.NtResumeThread), ref parameters);
+            return result;
+        }
     }
 }

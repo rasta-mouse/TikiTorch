@@ -83,6 +83,14 @@ namespace TikiLoader
             ref uint bytesWritten);
         
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        public delegate uint NtReadVirtualMemory(
+            IntPtr processHandle,
+            IntPtr baseAddress,
+            IntPtr buffer,
+            uint numberOfBytesToRead,
+            ref uint numberOfBytesRead);
+        
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         public delegate uint NtFreeVirtualMemory(
             IntPtr processHandle,
             ref IntPtr baseAddress,
@@ -115,5 +123,41 @@ namespace TikiLoader
             ref IntPtr regionSize,
             uint newProtect,
             ref uint oldProtect);
+        
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        public delegate uint NtUnmapViewOfSection(
+            IntPtr hProc,
+            IntPtr baseAddress);
+
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        public delegate uint NtResumeThread(
+            IntPtr hThread,
+            IntPtr suspendCount);
+        
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        public delegate uint NtCreateSection(
+            ref IntPtr sectionHandle,
+            uint desiredAccess,
+            IntPtr objectAttributes,
+            ref ulong maximumSize,
+            uint sectionPageProtection,
+            uint allocationAttributes,
+            IntPtr fileHandle);
+        
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        public delegate uint NtMapViewOfSection(
+            IntPtr sectionHandle,
+            IntPtr processHandle,
+            out IntPtr baseAddress,
+            IntPtr zeroBits,
+            IntPtr commitSize,
+            IntPtr sectionOffset,
+            out ulong viewSize,
+            uint inheritDisposition,
+            uint allocationType,
+            uint win32Protect);
+        
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        public delegate bool CloseHandle(IntPtr hProcess);
     }
 }

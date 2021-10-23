@@ -18,12 +18,36 @@ namespace TikiLoader
 
                 public const long BLOCK_NON_MICROSOFT_BINARIES_ALWAYS_ON = 0x100000000000;
 
+                public const int CREATE_SUSPENDED = 0x4;
                 public const uint EXTENDED_STARTUPINFO_PRESENT = 0x00080000;
                 
                 [Flags]
                 public enum STARTF : uint
                 {
                     STARTF_USESHOWWINDOW = 0x00000001,
+                }
+                
+                [Flags]
+                public enum StandardRights : uint
+                {
+                    Delete = 0x00010000,
+                    ReadControl = 0x00020000,
+                    WriteDac = 0x00040000,
+                    WriteOwner = 0x00080000,
+                    Synchronize = 0x00100000,
+                    Required = 0x000f0000,
+                    Read = ReadControl,
+                    Write = ReadControl,
+                    Execute = ReadControl,
+                    All = 0x001f0000,
+
+                    SpecificRightsAll = 0x0000ffff,
+                    AccessSystemSecurity = 0x01000000,
+                    MaximumAllowed = 0x02000000,
+                    GenericRead = 0x80000000,
+                    GenericWrite = 0x40000000,
+                    GenericExecute = 0x20000000,
+                    GenericAll = 0x10000000
                 }
                 
                 [StructLayout(LayoutKind.Sequential)]
@@ -72,6 +96,9 @@ namespace TikiLoader
 
                 public const uint PAGE_READWRITE = 0x04;
                 public const uint PAGE_EXECUTE_READ = 0x20;
+                public const uint PAGE_EXECUTE_READWRITE = 0x40;
+                
+                public const uint SEC_COMMIT = 0x08000000;
 
                 public enum ACCESS_MASK : uint
                 {

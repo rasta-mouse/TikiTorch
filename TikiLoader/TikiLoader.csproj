@@ -9,7 +9,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>TikiLoader</RootNamespace>
     <AssemblyName>TikiLoader</AssemblyName>
-    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
     <LangVersion>10</LangVersion>
@@ -47,9 +47,11 @@
     <Compile Include="Data.cs" />
     <Compile Include="Delegates.cs" />
     <Compile Include="Generic.cs" />
+    <Compile Include="Hollower.cs" />
     <Compile Include="Native.cs" />
     <Compile Include="Stomper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Utilities.cs" />
     <Compile Include="Win32.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

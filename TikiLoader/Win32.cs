@@ -48,5 +48,12 @@ namespace TikiLoader
             object[] parameters = { hHandle, dwMilliseconds };
             return (uint)Generic.DynamicApiInvoke(@"kernel32.dll", @"WaitForSingleObject", typeof(Delegates.WaitForSingleObject), ref parameters);
         }
+        
+        public static bool CloseHandle(IntPtr handle)
+        {
+            object[] parameters = { handle };
+            var retVal = (bool)Generic.DynamicApiInvoke("kernel32.dll", "CloseHandle", typeof(Delegates.CloseHandle), ref parameters);
+            return retVal;
+        }
     }
 }
