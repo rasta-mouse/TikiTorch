@@ -12,10 +12,10 @@ TikiTorch was named in homage to [CACTUSTORCH](https://github.com/vysecurity/CAC
 
 TikiTorch takes this a step further by offering more advanced processs spawning and injection:
 
-- Spawn x86 or x64 processes.
-- Supports PPID Spoofing and BlockDLLs.
+- Spawn x86 and x64 processes.
+- PPID Spoofing and BlockDLLs.
 - Supports [Module Stomping](https://offensivedefence.co.uk/posts/module-stomping/) and [Process Hollowing](https://github.com/ambray/ProcessHollowing/blob/master/ShellLoader/Loader.cs) for injection.
-- Utilises [DInvoke](https://github.com/TheWover/DInvoke) to call lower-level Nt* APIs.
+- Utilises [DInvoke](https://github.com/TheWover/DInvoke) to call Nt* APIs, or optionally use Syscalls.
 
 The TikiTorch solution has 2 projects:
 1. TikiLoader
@@ -37,5 +37,5 @@ var hollower = new Hollower
     BlockDlls = true
 };
             
-hollower.Hollow(Shellcode);
+hollower.Hollow(Shellcode, true);
 ```
