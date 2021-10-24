@@ -108,10 +108,8 @@ namespace TikiLoader
             }
 
             if (functionPtr == IntPtr.Zero)
-            {
                 throw new MissingMethodException(exportName + ", export not found.");
-            }
-            
+
             return functionPtr;
         }
         
@@ -267,6 +265,146 @@ namespace TikiLoader
 
             // Return dict
             return apiSetDict;
+        }
+        
+        public static IntPtr GetSyscallStub(string functionName)
+        {
+            // Verify process & architecture
+            var isWow64 = Native.NtQueryInformationProcessWow64Information((IntPtr)(-1));
+            if (IntPtr.Size == 4 && isWow64)
+                throw new InvalidOperationException("Generating Syscall stubs is not supported for WOW64.");
+
+            // Find the path for ntdll by looking at the currently loaded module
+            var ntdllPath = string.Empty;
+            var procModules = Process.GetCurrentProcess().Modules;
+            
+            foreach (ProcessModule module in procModules)
+            {
+                if (!module.FileName.EndsWith("ntdll.dll", StringComparison.OrdinalIgnoreCase)) continue;
+                ntdllPath = module.FileName;
+                break;
+            }
+
+            // Alloc module into memory for parsing
+            var pModule = ManualMap.Map.AllocateFileToMemory(ntdllPath);
+
+            // Fetch PE meta data
+            var peInfo = GetPeMetaData(pModule);
+
+            // Alloc PE image memory -> RW
+            var baseAddress = IntPtr.Zero;
+            var regionSize = peInfo.Is32Bit ? (IntPtr)peInfo.OptHeader32.SizeOfImage : (IntPtr)peInfo.OptHeader64.SizeOfImage;
+            var sizeOfHeaders = peInfo.Is32Bit ? peInfo.OptHeader32.SizeOfHeaders : peInfo.OptHeader64.SizeOfHeaders;
+
+            var pImage = Native.NtAllocateVirtualMemory(
+                (IntPtr)(-1), ref baseAddress, IntPtr.Zero, ref regionSize,
+                Data.Win32.Kernel32.MEM_COMMIT | Data.Win32.Kernel32.MEM_RESERVE,
+                Data.Win32.WinNT.PAGE_READWRITE
+            );
+
+            // Write PE header to memory
+            var bytesWritten = Native.NtWriteVirtualMemory((IntPtr)(-1), pImage, pModule, sizeOfHeaders);
+
+            // Write sections to memory
+            foreach (var ish in peInfo.Sections)
+            {
+                // Calculate offsets
+                var pVirtualSectionBase = (IntPtr)((ulong)pImage + ish.VirtualAddress);
+                var pRawSectionBase = (IntPtr)((ulong)pModule + ish.PointerToRawData);
+
+                // Write data
+                bytesWritten = Native.NtWriteVirtualMemory((IntPtr)(-1), pVirtualSectionBase, pRawSectionBase, ish.SizeOfRawData);
+                
+                if (bytesWritten != ish.SizeOfRawData)
+                    throw new InvalidOperationException("Failed to write to memory.");
+            }
+
+            // Get Ptr to function
+            var pFunc = GetExportAddress(pImage, functionName);
+            
+            if (pFunc == IntPtr.Zero)
+                throw new InvalidOperationException("Failed to resolve ntdll export.");
+
+            // Alloc memory for call stub
+            baseAddress = IntPtr.Zero;
+            regionSize = (IntPtr)0x50;
+            
+            var pCallStub = Native.NtAllocateVirtualMemory(
+                (IntPtr)(-1), ref baseAddress, IntPtr.Zero, ref regionSize,
+                Data.Win32.Kernel32.MEM_COMMIT | Data.Win32.Kernel32.MEM_RESERVE,
+                Data.Win32.WinNT.PAGE_READWRITE
+            );
+
+            // Write call stub
+            bytesWritten = Native.NtWriteVirtualMemory((IntPtr)(-1), pCallStub, pFunc, 0x50);
+            
+            if (bytesWritten != 0x50)
+                throw new InvalidOperationException("Failed to write to memory.");
+
+            // Change call stub permissions
+            Native.NtProtectVirtualMemory((IntPtr)(-1), ref pCallStub, ref regionSize, Data.Win32.WinNT.PAGE_EXECUTE_READ);
+
+            // Free temporary allocations
+            Marshal.FreeHGlobal(pModule);
+            regionSize = peInfo.Is32Bit ? (IntPtr)peInfo.OptHeader32.SizeOfImage : (IntPtr)peInfo.OptHeader64.SizeOfImage;
+
+            Native.NtFreeVirtualMemory((IntPtr)(-1), ref pImage, ref regionSize, Data.Win32.Kernel32.MEM_RELEASE);
+
+            return pCallStub;
+        }
+        
+        private static Data.PE.PE_META_DATA GetPeMetaData(IntPtr pModule)
+        {
+            var peMetaData = new Data.PE.PE_META_DATA();
+            
+            try
+            {
+                var e_lfanew = (uint)Marshal.ReadInt32((IntPtr)((ulong)pModule + 0x3c));
+                peMetaData.Pe = (uint)Marshal.ReadInt32((IntPtr)((ulong)pModule + e_lfanew));
+                
+                // Validate PE signature
+                if (peMetaData.Pe != 0x4550)
+                    throw new InvalidOperationException("Invalid PE signature.");
+                
+                peMetaData.ImageFileHeader = (Data.PE.IMAGE_FILE_HEADER)Marshal.PtrToStructure((IntPtr)((ulong)pModule + e_lfanew + 0x4), typeof(Data.PE.IMAGE_FILE_HEADER));
+                
+                var optHeader = (IntPtr)((ulong)pModule + e_lfanew + 0x18);
+                var peArch = (ushort)Marshal.ReadInt16(optHeader);
+
+                switch (peArch)
+                {
+                    // Validate PE arch
+                    case 0x010b:  // Image is x32
+                        peMetaData.Is32Bit = true;
+                        peMetaData.OptHeader32 = (Data.PE.IMAGE_OPTIONAL_HEADER32)Marshal.PtrToStructure(optHeader, typeof(Data.PE.IMAGE_OPTIONAL_HEADER32));
+                        break;
+                    
+                    case 0x020b:  // Image is x64
+                        peMetaData.Is32Bit = false;
+                        peMetaData.OptHeader64 = (Data.PE.IMAGE_OPTIONAL_HEADER64)Marshal.PtrToStructure(optHeader, typeof(Data.PE.IMAGE_OPTIONAL_HEADER64));
+                        break;
+                    
+                    default:
+                        throw new InvalidOperationException("Invalid magic value (PE32/PE32+).");
+                }
+                
+                // Read sections
+                var sectionArray = new Data.PE.IMAGE_SECTION_HEADER[peMetaData.ImageFileHeader.NumberOfSections];
+                
+                for (var i = 0; i < peMetaData.ImageFileHeader.NumberOfSections; i++)
+                {
+                    var sectionPtr = (IntPtr)((ulong)optHeader + peMetaData.ImageFileHeader.SizeOfOptionalHeader + (uint)(i * 0x28));
+                    sectionArray[i] = (Data.PE.IMAGE_SECTION_HEADER)Marshal.PtrToStructure(sectionPtr, typeof(Data.PE.IMAGE_SECTION_HEADER));
+                }
+                
+                peMetaData.Sections = sectionArray;
+            }
+            catch
+            {
+                throw new InvalidOperationException("Invalid module base specified.");
+            }
+            
+            return peMetaData;
         }
     }
 }

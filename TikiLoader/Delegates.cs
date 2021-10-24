@@ -99,7 +99,7 @@ namespace TikiLoader
         
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         public delegate uint NtCreateThreadEx(
-            out IntPtr threadHandle,
+            ref IntPtr threadHandle,
             Data.Win32.WinNT.ACCESS_MASK desiredAccess,
             IntPtr objectAttributes,
             IntPtr processHandle,
@@ -148,11 +148,11 @@ namespace TikiLoader
         public delegate uint NtMapViewOfSection(
             IntPtr sectionHandle,
             IntPtr processHandle,
-            out IntPtr baseAddress,
+            ref IntPtr baseAddress,
             IntPtr zeroBits,
             IntPtr commitSize,
             IntPtr sectionOffset,
-            out ulong viewSize,
+            ref ulong viewSize,
             uint inheritDisposition,
             uint allocationType,
             uint win32Protect);
